@@ -26,8 +26,18 @@ PulseWidth[µs] = t<sub>new_edge</sub> - t<sub>previous_edge</sub>
 
 
 
-## Mapping PulseWidth to PulseCode
+## B&O remote control code-format 
+Some information about the code-format of the Beo4 remote control can be found here: 
+  
+  | Comment    | Link      |
+  | ----------:|:---------|
+  | data-link manual | https://www.mikrocontroller.net/attachment/33137/datalink.pdf  |
+  | Beomote githup repo | https://github.com/christianlykke9/Beomote |
+  
+  
 
+
+## Mapping PulseWidth to PulseCode
 Pulses have different widths and corresponding PulseCodes as seen in the table below.
 
 >The different pulse-widths are multiples of 3125us, i.e. the PulseCode can be calculated this way:  
