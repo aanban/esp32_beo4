@@ -15,8 +15,7 @@ Another issue is that the tested TSOP7000 are quite sensitive and react to sunli
 ## Approach to avoid the dummy pulses
 I was thinking that it would be better to improve the hardware signal instead of giving the unstable signal directly to the µC, thus generating unnecessarily many interrupts. The datasheet's application note suggests a resistor R1=47&Omega; in series and a capacitor C1=4.7&mu;F for a clean power supply. In addition, a pull-up resistor R2=1k&Omega; is recommended to improve the output signal quality. I can't see any differences with or without the Rs and Cs. In order to improve the power supply a LF33 was added. OK, it does improve the behaviour just slightly, but on the other hand it doesn't hurt either to have a proper voltage. And additionally a NE555 based monoflop (CMOS type TLC555) was added to suppress the dummy pulses as shown in schematic below. In principle the R3 and C5 should generate a pulse width of about 620&mu;s. I tried different Cs and finally a smaller one with 3.3nF did it. The exact pulse length does not matter, the main thing is that it is is significantly longer than 200us to suppress the dummies. 
 
-![tsop7000_ne555](https://user-images.githubusercontent.com/71218544/194762286-5045b65d-3791-457a-90fd-e32e57cc7a92.png)
-
+![tsop7000_ne555](https://github.com/aanban/esp32_beo4/assets/71218544/d7d9b09d-e723-4cfe-870d-ee9ab30b8455)
 
 The picture below shows the (TSOP7000-output) ``blue=ir_raw`` and the (NE555-output) ``yellow=ir_out``, that is suitable as an interrupt input signal. The ``ir_out`` is high active, in contrast to the input signal ``ir_raw`` which is low-active. The interrupt-service-routine can then simply trigger on the rising edge instead of the falling edge.  
 
