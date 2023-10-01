@@ -29,10 +29,10 @@ PulseWidth[µs] = t<sub>new_edge</sub> - t<sub>previous_edge</sub>
 ## B&O remote control code-format 
 Some information about the code-format of the Beo4 remote control can be found here: 
   
-  | Comment    | Link      |
-  | ----------:|:---------|
+  | Comment          | Link                                                           |
+  | ----------------:|:---------------------------------------------------------------|
   | data-link manual | https://www.mikrocontroller.net/attachment/33137/datalink.pdf  |
-  | Beomote githup repo | https://github.com/christianlykke9/Beomote |
+  | Beomote          | https://github.com/christianlykke9/Beomote                     |
   
   
 
@@ -106,11 +106,11 @@ The 17 Bit payload is devided into 3 data fields `` beoLink `` (1-Bit), `` beoSo
 
 ### Example of the "TV on" button
 
-   | Start|beoLink |beoSource |beoCommand | Stop |           |
-   | -----|:------:|:--------:|:---------:|:----:|:----------|
-   | 115  | 1      | 2222 2222| 3122 2222 |  4   | PulseCode |
-   |      | 0      | 0000 0000| 1000 0000 |      | BitCode   |
-   |      | 0      | 0x00     | 0x80      |      | beoCode   |
+   |           | Start|beoLink |beoSource |beoCommand | Stop |
+   |----------:| -----|:------:|:--------:|:---------:|:----:|
+   | PulseCode | 115  | 1      | 2222 2222| 3122 2222 |  4   |
+   | BitCode   |      | 0      | 0000 0000| 1000 0000 |      |
+   | beoCode   |      | 0      | 0x00     | 0x80      |      |
 
 ``` 
    beoCode     = 0x0080          
@@ -122,11 +122,11 @@ The 17 Bit payload is devided into 3 data fields `` beoLink `` (1-Bit), `` beoSo
 
 ### Example of the "LIGHT - #9" button
 
-   | Start|beoLink |beoSource |beoCommand | Stop |           |
-   | -----|:------:|:--------:|:---------:|:----:|:----------|
-   | 115  | 1      | 2223 2132| 1222 3123 |   4  | PulseCode |
-   |      | 0      | 0001 1011| 0000 1001 |      | BitCode   |
-   |      | 0      | 0x1B     | 0x09      |      | beoCoode  |
+   |           | Start|beoLink |beoSource |beoCommand | Stop |
+   |----------:| -----|:------:|:--------:|:---------:|:----:|
+   | PulseCode | 115  | 1      | 2223 2132| 1222 3123 |   4  |
+   | BitCode   |      | 0      | 0001 1011| 0000 1001 |      |
+   | beoCoode  |      | 0      | 0x1B     | 0x09      |      |
 
 ``` 
    beoCode     = 0x1B09          
