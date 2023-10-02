@@ -5,7 +5,6 @@
 
 // external call back functions
 extern __attribute__((weak)) void beo_code_cb(uint32_t beo_code);
-extern __attribute__((weak)) void beo_led_cb(int8_t mode);
 
 // interupt-serice-routine
 // trigger on rising edge of IR signal, get timestamp and send to q_irs_queue 
@@ -129,7 +128,6 @@ class IrBeo4 {
     int8_t m_ir_rx_pin = -1;             // IR receive pin
     int8_t m_ir_tx_pin = -1;             // IR transmit pin
     int8_t m_ir_tx_pwm = -1;             // IR transmit pwm channel
-    int8_t m_led_pin   = -1;             // LED pin
     QueueHandle_t m_beo4_rx_queue;       // output queue for received beoCodes
     QueueHandle_t m_beo4_tx_queue;       // input queue for beoCodes to be send
     esp_timer_handle_t m_OneShotTimer_h; // ont-shot-timer handle 
@@ -157,7 +155,6 @@ class IrBeo4 {
     // @param rx_pin  = IR receiver input pin
     // @param tx_pin  = IR transmit output pin (default=-1, not used)
     // @param tx_pwm  = IR transmit pwm-channel (default=-1, not used)
-    // @param led_pin = LED indicator pin (default=-1, not used)
     IrBeo4(int8_t rx_pin,int8_t tx_pin=-1, int8_t tx_pwm=-1);
     
     // destructor

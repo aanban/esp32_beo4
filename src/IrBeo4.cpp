@@ -126,12 +126,10 @@ void beo4_rx_task(void *param) {
     // - log-message
     // - set state=FSM_IDLE
     // - set timeout=infinite
-    // - turn LED off
     #define RESET_FSM(a){ \
       log_i("%s: t=%lld fsm=%d pc=%d \n",a,tsNew,fsm,pCode); \
       wait=WAIT_Infinite; \
       fsm=FSM_IDLE; \
-      if(beo_led_cb) beo_led_cb(HIGH); \
       continue; \
     }
 
@@ -149,7 +147,6 @@ void beo4_rx_task(void *param) {
           bitCnt=0;       // reset bit counter
           tsSta=tsNew;    // mark start of frame
           fsm=FSM_S0;     // enter start sequence
-          if(beo_led_cb) beo_led_cb(LOW);  // indicate active frame with LED
           break;
         } 
         case FSM_S0: {
