@@ -72,8 +72,7 @@ The picture below shows the (TSOP7000-output) ``blue=ir_raw`` and the (TLC555-ou
 PulseWidth[µs] = t<sub>new_edge</sub> - t<sub>previous_edge</sub>
 
 
-![07_monoflop](https://user-images.githubusercontent.com/71218544/194763235-d6f50ebb-2604-473f-b9f4-24f811daeaff.png)
-
+![07_monoflop](https://github.com/aanban/esp32_beo4/blob/main/doc/tsop7000_ne555.png)
 
 
 ## B&O remote control code-format 
