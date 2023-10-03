@@ -4,7 +4,7 @@
   "description": "decoder for B&O remote control beo4, TSOP7000 + monoflop",
   "author": "aanban",
   "license": "MIT license",
-  "keywords": ["B&0", "Beo4", "TSOP7000"],
+  "keywords": ["B&0", "Beo4", "TSOP7000", "IR decoder"],
   "frameworks": "arduino",
   "platforms": ["espressif32"],
   "directories": {
