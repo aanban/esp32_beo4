@@ -18,7 +18,10 @@ void beo4_task(void *parameter) {
   static uint32_t beo4Code=0;
   while(1) {
     if(pdTRUE==xQueueReceive(beo4_rx_queue,(void*)(&beo4Code),portMAX_DELAY)) {
-      Serial.printf("beo4_task:   %04x %s %s\n",beo4Code,beo_src_tbl(beo4Code),beo_cmd_tbl(beo4Code));
+      Serial.printf("beo4_task:   %04x %s %s\n",
+                    beo4Code,
+                    beo_src_tbl(beo4Code),
+                    beo_cmd_tbl(beo4Code));
     }
   }
 }
@@ -27,7 +30,10 @@ void beo4_task(void *parameter) {
 // alternative solution with callback function
 //
 void beo_code_cb(uint32_t beo_code) {
-  Serial.printf("beo_code_cb: %04x %s %s \n", beo_code,beo_src_tbl(beo_code),beo_cmd_tbl(beo_code));
+  Serial.printf("beo_code_cb: %04x %s %s \n",
+                beo_code,
+                beo_src_tbl(beo_code),
+                beo_cmd_tbl(beo_code));
 }
 
 void setup() {
