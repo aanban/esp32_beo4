@@ -65,16 +65,16 @@ Another issue is that the tested TSOP7000 are quite sensitive and react to sunli
 ## Approach to avoid the dummy pulses
 I was thinking that it would be better to improve the hardware signal instead of giving the unstable signal directly to the µC, thus generating unnecessarily many interrupts. The datasheet's application note suggests a resistor R1=47&Omega; in series and a capacitor C1=4.7&mu;F for a clean power supply. In addition, a pull-up resistor R2=1k&Omega; is recommended to improve the output signal quality. I can't see any differences with or without the Rs and Cs. In order to improve the power supply a LF33 was added. OK, it does improve the behaviour just slightly, but on the other hand it doesn't hurt either to have a proper voltage. A monoflop could help to avoid the dummy pulses. I found a TLC555 in my box. In principle the R3 and C5 should generate a pulse width of about 620&mu;s. I tried different Cs and finally a smaller one with 3.3nF did it. The exact pulse length does not matter, the main thing is that it is is significantly longer than 200us to suppress the dummies. 
 
-The picture below shows the (TSOP7000-output) ``blue=ir_raw`` and the (TLC555-output) ``yellow=ir_out``, that is suitable as an interrupt input signal for the EPS32. The ``ir_out`` is high active, in contrast to the input signal ``ir_raw`` which is low-active. The interrupt-service-routine can then simply trigger on the rising edge instead of the falling edge.  
+The picture below shows the (TSOP7000-output) ``blue=ir_raw`` and the (TLC555-output) ``yellow=ir_out``, that is suitable as an interrupt input signal for the EPS32. 
+![07_monoflop](https://github.com/aanban/esp32_beo4/blob/main/doc/tsop7000_ne555.png)
+
+The ``ir_out`` is high active, in contrast to the input signal ``ir_raw`` which is low-active. The interrupt-service-routine can then simply trigger on the rising edge instead of the falling edge.  
 
 > The PulseWidth is measured as time between two rising edges and converted to PulseCodes.  
 PulseWidth[µs] = t<sub>new_edge</sub> - t<sub>previous_edge</sub>
 
 
-![07_monoflop](https://github.com/aanban/esp32_beo4/blob/main/doc/tsop7000_ne555.png)
-
-
-## B&O remote control code-format 
+## Decoding B&O remote control codes
 Some information about the code-format of the Beo4 remote control can be found here: 
   
   | Comment          | Link                                                           |
@@ -82,9 +82,6 @@ Some information about the code-format of the Beo4 remote control can be found h
   | data-link manual | https://www.mikrocontroller.net/attachment/33137/datalink.pdf  |
   | Beomote          | https://github.com/christianlykke9/Beomote                     |
   
-  
-
-
 ## Mapping PulseWidth to PulseCode
 Pulses have different widths and corresponding PulseCodes as seen in the table below.
 
