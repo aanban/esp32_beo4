@@ -49,7 +49,7 @@ void loop() {
 
 ```
 
-# Hardware Issues
+# TSOP7000 Issues
 The Bang & Olufsen IR remote control Beo4 works with a carrier frequency of 455kHz. A suitable decoder device is the TSOP7000 from Vishay. However, the
 [production has been stopped in 2009](https://www.vishay.com/files/whatsnew/doc/ff_FastFacts_CounterfeitTSOP7000_Dec72018.pdf) 
 .
