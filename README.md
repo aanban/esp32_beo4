@@ -1,6 +1,6 @@
 # esp32_beo4
 
-# Usage
+# 1. Usage
 
 ```cpp
 #include <Arduino.h>
@@ -49,7 +49,7 @@ void loop() {
 
 ```
 
-# TSOP7000 Issues
+# 2. TSOP7000 Issues
 The Bang & Olufsen IR remote control Beo4 works with a carrier frequency of 455kHz. A suitable decoder device is the TSOP7000 from Vishay. However, the
 [production has been stopped in 2009](https://www.vishay.com/files/whatsnew/doc/ff_FastFacts_CounterfeitTSOP7000_Dec72018.pdf) 
 .
@@ -59,22 +59,43 @@ The tsop7000 replicas, that I have tested, in principle decodes a low-activ puls
 
 Another issue is that the tested TSOP7000 are quite sensitive and react to sunlight or whatever, anyway I observed sporadic pulses on the output even without pressing any button on the Beo4 remote control. 
 
-![06_noise_pulse](https://user-images.githubusercontent.com/71218544/194729642-63497a29-b367-4c02-b4f2-eb69589c79a8.png)
+![06_noise_pulse](doc/09_noise_pulse.png)
 
 
-## Approach to avoid the dummy pulses
-I was thinking that it would be better to improve the hardware signal instead of giving the unstable signal directly to the µC, thus generating unnecessarily many interrupts. The datasheet's application note suggests a resistor R1=47&Omega; in series and a capacitor C1=4.7&mu;F for a clean power supply. In addition, a pull-up resistor R2=1k&Omega; is recommended to improve the output signal quality. I can't see any differences with or without the Rs and Cs. In order to improve the power supply a LF33 was added. OK, it does improve the behaviour just slightly, but on the other hand it doesn't hurt either to have a proper voltage. A monoflop could help to avoid the dummy pulses. I found a TLC555 in my box. In principle the R3 and C5 should generate a pulse width of about 620&mu;s. I tried different Cs and finally a smaller one with 3.3nF did it. The exact pulse length does not matter, the main thing is that it is is significantly longer than 200us to suppress the dummies. 
+## 2.1. Approach to avoid the dummy pulses
+The low pulses are not important for decoding the received signal, i.e. only the total length (falling edge --> falling edge) is important.
 
-The picture below shows the (TSOP7000-output) ``blue=ir_raw`` and the (TLC555-output) ``yellow=ir_out``, that is suitable as an interrupt input signal for the EPS32. 
-![07_monoflop](https://github.com/aanban/esp32_beo4/blob/main/doc/tsop7000_ne555.png)
-
-The ``ir_out`` is high active, in contrast to the input signal ``ir_raw`` which is low-active. The interrupt-service-routine can then simply trigger on the rising edge instead of the falling edge.  
-
-> The PulseWidth is measured as time between two rising edges and converted to PulseCodes.  
+> [!NOTE]
+> The PulseWidth is measured as time between two falling edges and converted to PulseCodes.  
 PulseWidth[µs] = t<sub>new_edge</sub> - t<sub>previous_edge</sub>
 
 
-## Decoding B&O remote control codes
+The low pulses can therefore also be extended in order to suppress the interference pulses. I have tested two approaches, a hardware-based monoflop solution and a software-based debouncing solution. 
+
+
+### 2.1.1. Hardware solution
+In terms of hardware, a monoflop can suppress the interference pulses. The following circuit with a TLC555 has worked. The low pulse is extended to approx. 600µs. The interrupt service routine has to be attached to the rising edge of the `ir_out` signal. 
+
+![d](doc/tsop7000_ne555.png)
+
+### 2.1.2. Software solution
+The software-based solution works well and is easier to implement. The debouncing method (similar to the debouncing of buttons) is implemented within the interrupt service routine. Timestamps are measured for each interrupt and compared with the previous interrupt. The timestamp is put into the queue only, if the previous interrupt was more than 600µs ago. This suppresses all shorter interference pulses. 
+
+```cpp
+// interrupt service routine
+void IRAM_ATTR ir_pulse_isr(void) {
+  static int64_t tsPre=0;              // timestamp of previous edge
+  int64_t tsNew=esp_timer_get_time();  // timestamp of new edge
+  if((tsNew-tsPre) > t_debounce ) {    // debounce TSOP7000 output
+    xQueueSend(g_isr_queue,&tsNew,0);  // send timestamp to queue if valid low pulse
+    tsPre=tsNew;
+  }
+}
+```
+
+
+
+# 3. Decoding B&O remote control codes
 Some information about the code-format of the Beo4 remote control can be found here: 
   
   | Comment          | Link                                                           |
@@ -82,9 +103,10 @@ Some information about the code-format of the Beo4 remote control can be found h
   | data-link manual | https://www.mikrocontroller.net/attachment/33137/datalink.pdf  |
   | Beomote          | https://github.com/christianlykke9/Beomote                     |
   
-## Mapping PulseWidth to PulseCode
+## 3.1. Mapping PulseWidth to PulseCode
 Pulses have different widths and corresponding PulseCodes as seen in the table below.
 
+> [!NOTE]
 >The different pulse-widths are multiples of 3125us, i.e. the PulseCode can be calculated this way:  
 PulseCode = (t<sub>new_edge</sub> - t<sub>previous_edge</sub> + 1562) / 3125
   

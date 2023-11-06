@@ -91,12 +91,12 @@ constexpr uint8_t BEO_CMD_STAND        = 0xf7;
 const char* beo_src_tbl(uint32_t beo_code) {
   uint8_t source=(uint8_t) ((beo_code>>8) & 255u);
   switch(source) {
-    case BEO_SRC_VIDEO:  return(PSTR("video"));
-    case BEO_SRC_AUDIO:  return(PSTR("audio"));
-    case BEO_SRC_VTAPE:  return(PSTR("vtape"));
-    case BEO_SRC_ALL:    return(PSTR("all  "));
-    case BEO_SRC_SPDEMO: return(PSTR("spdmo"));
-    case BEO_SRC_LIGHT:  return(PSTR("light"));
+    case BEO_SRC_VIDEO:  return(PSTR("vid"));
+    case BEO_SRC_AUDIO:  return(PSTR("aud"));
+    case BEO_SRC_VTAPE:  return(PSTR("vta"));
+    case BEO_SRC_ALL:    return(PSTR("all"));
+    case BEO_SRC_SPDEMO: return(PSTR("spd"));
+    case BEO_SRC_LIGHT:  return(PSTR("lig"));
   }
   return(PSTR("invalid_src"));
 }
@@ -145,15 +145,15 @@ const char* beo_cmd_tbl(uint32_t beo_code) {
     case BEO_CMD_MENU:         return(PSTR("menu"));
     case BEO_CMD_VOL_UP:       return(PSTR("vol++"));
     case BEO_CMD_VOL_DOWN:     return(PSTR("vol--"));
-    case BEO_CMD_LEFT_REPEAT:  return(PSTR("left-repeat"));
-    case BEO_CMD_RIGHT_REPEAT: return(PSTR("right-repeat"));
-    case BEO_CMD_UP_REPEAT:    return(PSTR("up-repeat"));
-    case BEO_CMD_DOWN_REPEAT:  return(PSTR("down-repeat"));
-    case BEO_CMD_GO_REPEAT:    return(PSTR("go-repeat"));
-    case BEO_CMD_GREEN_REPEAT: return(PSTR("green-repeat"));
-    case BEO_CMD_YELLOW_REPEAT:return(PSTR("yellow-repeat"));
-    case BEO_CMD_BLUE_REPEAT:  return(PSTR("blue-repeat"));
-    case BEO_CMD_RED_REPEAT:   return(PSTR("red-repeat"));
+    case BEO_CMD_LEFT_REPEAT:  return(PSTR("left++"));
+    case BEO_CMD_RIGHT_REPEAT: return(PSTR("right++"));
+    case BEO_CMD_UP_REPEAT:    return(PSTR("up++"));
+    case BEO_CMD_DOWN_REPEAT:  return(PSTR("down++"));
+    case BEO_CMD_GO_REPEAT:    return(PSTR("go++"));
+    case BEO_CMD_GREEN_REPEAT: return(PSTR("green++"));
+    case BEO_CMD_YELLOW_REPEAT:return(PSTR("yellow++"));
+    case BEO_CMD_BLUE_REPEAT:  return(PSTR("blue++"));
+    case BEO_CMD_RED_REPEAT:   return(PSTR("red++"));
     case BEO_CMD_EXIT:         return(PSTR("exit"));
     case BEO_CMD_TV:           return(PSTR("tv-on"));
     case BEO_CMD_RADIO:        return(PSTR("radio-on"));
