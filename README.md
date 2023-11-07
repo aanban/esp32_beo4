@@ -74,12 +74,12 @@ The low pulses can therefore also be extended in order to suppress the interfere
 
 
 ### 2.1.1. Hardware work arround
-In terms of hardware, a monoflop can suppress the interference pulses. The following circuit with a TLC555 has worked. The low pulse is extended to ca. 620µs. The output signal `ir_out` is high-active, therfore the interrupt service routine has to be attached to the rising edge. 
+In terms of hardware, a monoflop can suppress the interference pulses. The following circuit with a TLC555 has worked. The low pulse is extended to ca. 620µs. The output signal `ir_out` is high-active, therefore `mode=RISING` must be set in the `attachInterrupt()` function instead of `mode=FALLING`.  
 
 ![d](doc/tsop7000_ne555.png)
 
 ### 2.1.2. Software solution
-The software-based work-arround is easier to implement.  Debouncing (similar to debouncing of buttons) is implemented within the interrupt service routine. Timestamps are measured for each interrupt and compared with the previous interrupt. The timestamp is put into the `g_isr_queue` queue only, if the previous interrupt was more than 600µs ago, i.e. the short interference pulses will be suppressed.
+The software-based work-arround is easier to implement.  Debouncing (similar to debouncing of buttons) is implemented within the interrupt service routine. Timestamps are measured for each interrupt and compared with the previous interrupt. The timestamp is put into the `g_isr_queue` queue only, if the previous interrupt was more than `t_debounce=600µs` ago, i.e. the short interference pulses will be suppressed.
 
 ```cpp
 // interrupt service routine
@@ -92,11 +92,19 @@ void IRAM_ATTR ir_pulse_isr(void) {
   }
 }
 ```
+The TSOP7000 output is `low-activ`, therefor `mode=FALLING` must be set in the `attachInterrupt()` function.
 
+```cpp
+  // attach interrupt to TSOP7000 output, and set to falling edge
+  if(-1!=m_rx_pin) { 
+    pinMode(m_rx_pin, INPUT);
+    attachInterrupt(m_rx_pin, ir_pulse_isr, FALLING);
+  } 
+```
 
 
 # 3. Decoding B&O remote control codes
-More information about the code-format of the Beo4 remote control can be found here: 
+Further information about the Beo4 remote control code-format can be found here: 
   
   | Comment          | Link                                                           |
   | ----------------:|:---------------------------------------------------------------|
@@ -124,7 +132,7 @@ The picture below shows the frame start with two short pulses and long pulse, th
 ![02_beo_start_pulse](https://user-images.githubusercontent.com/71218544/194729918-956891e2-33d7-4dd9-942f-0695d46d1ddb.png)
 
 
-## 3.2. Beo4 Codeformat
+## 3.2. Decoding Beo4 PulseCode sequences
 
 The Beo4 remote control generates the PulseCode sequences with a total length of 21 pulses as seen below
 
@@ -132,13 +140,15 @@ The Beo4 remote control generates the PulseCode sequences with a total length of
 
 
 
- The 21 PulseCode frame consists of the start-sequence `` BEO_ZERO `` , `` BEO_ZERO `` , `` BEO_START ``, followed by the 17 payload data codes each in the range [`` BEO_ZERO `` , `` BEO_SAME `` , `` BEO_ONE ``] and the `` BEO_STOP `` code, marking the end of frame.  
+ A complete Beo4 frame with 21 PulseCodes consists of the start-sequence `` BEO_ZERO `` , `` BEO_ZERO `` , `` BEO_START ``, followed by the 17 payload data codes each in the range [`` BEO_ZERO `` , `` BEO_SAME `` , `` BEO_ONE ``] and ends with the `` BEO_STOP `` code.
   
-The PulseCodes of the payload data are mapped to the BitCodes as followed:   
+Within the payload data the PulseCodes are mapped to BitCodes as followed:   
 ```
-BEO_ZERO --> set BitCode=0,   
-BEO_ONE  --> set BitCode=1,   
-BEO_SAME --> set BitCode to previous BitCode 
+PulseCode     BitCode
+---------     ----------
+BEO_ZERO  --> BitCode=0 
+BEO_ONE   --> BitCode=1 
+BEO_SAME  --> BitCode=previous BitCode 
 ```
 > [!NOTE]
 >*The `` BEO_SAME `` code was probably introduced to get approximately the same frame length for all Beo4 buttons. Otherwise, Beo4 commands with many 0-data-bits (e.g. TV-0 button) would become much shorter than those with many 1-data-bits. `` BEO_ZERO `` consumes 3.2ms and `` BEO_ONE `` consumes 9.3ms.*
