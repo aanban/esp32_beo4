@@ -103,7 +103,7 @@ The TSOP7000 output is `low-activ`, therefor `mode=FALLING` must be set in the `
 ```
 
 
-# 3. Decoding B&O remote control codes
+# 3. Decoding B&O Beo4 remote control codes
 Further information about the Beo4 remote control code-format can be found here: 
   
   | Comment          | Link                                                           |
