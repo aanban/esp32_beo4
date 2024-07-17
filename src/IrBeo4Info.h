@@ -91,12 +91,12 @@ constexpr uint8_t BEO_CMD_STAND        = 0xf7;
 const char* beo_src_tbl(uint32_t beo_code) {
   uint8_t source=(uint8_t) ((beo_code>>8) & 255u);
   switch(source) {
-    case BEO_SRC_VIDEO:  return(PSTR("vid"));
-    case BEO_SRC_AUDIO:  return(PSTR("aud"));
-    case BEO_SRC_VTAPE:  return(PSTR("vta"));
+    case BEO_SRC_VIDEO:  return(PSTR("video"));
+    case BEO_SRC_AUDIO:  return(PSTR("audio"));
+    case BEO_SRC_VTAPE:  return(PSTR("vtape"));
     case BEO_SRC_ALL:    return(PSTR("all"));
-    case BEO_SRC_SPDEMO: return(PSTR("spd"));
-    case BEO_SRC_LIGHT:  return(PSTR("lig"));
+    case BEO_SRC_SPDEMO: return(PSTR("spdemo"));
+    case BEO_SRC_LIGHT:  return(PSTR("light"));
   }
   return(PSTR("invalid_src"));
 }
@@ -107,16 +107,16 @@ const char* beo_src_tbl(uint32_t beo_code) {
 const char* beo_cmd_tbl(uint32_t beo_code) {
   uint8_t command=(uint8_t) (beo_code & 255u);
   switch(command) {
-    case BEO_CMD_NUM_0:        return(PSTR("0"));
-    case BEO_CMD_NUM_1:        return(PSTR("1"));
-    case BEO_CMD_NUM_2:        return(PSTR("2"));
-    case BEO_CMD_NUM_3:        return(PSTR("3"));
-    case BEO_CMD_NUM_4:        return(PSTR("4"));
-    case BEO_CMD_NUM_5:        return(PSTR("5"));
-    case BEO_CMD_NUM_6:        return(PSTR("6"));
-    case BEO_CMD_NUM_7:        return(PSTR("7"));
-    case BEO_CMD_NUM_8:        return(PSTR("8"));
-    case BEO_CMD_NUM_9:        return(PSTR("9"));
+    case BEO_CMD_NUM_0:        return(PSTR("num-0"));
+    case BEO_CMD_NUM_1:        return(PSTR("num-1"));
+    case BEO_CMD_NUM_2:        return(PSTR("num-2"));
+    case BEO_CMD_NUM_3:        return(PSTR("num-3"));
+    case BEO_CMD_NUM_4:        return(PSTR("num-4"));
+    case BEO_CMD_NUM_5:        return(PSTR("num-5"));
+    case BEO_CMD_NUM_6:        return(PSTR("num-6"));
+    case BEO_CMD_NUM_7:        return(PSTR("num-7"));
+    case BEO_CMD_NUM_8:        return(PSTR("num-8"));
+    case BEO_CMD_NUM_9:        return(PSTR("num-9"));
     case BEO_CMD_CLEAR:        return(PSTR("clear"));
     case BEO_CMD_STORE:        return(PSTR("store"));
     case BEO_CMD_STANDBY:      return(PSTR("standby"));
