@@ -126,7 +126,7 @@ int IrBeo4::Begin(QueueHandle_t beo4_rx_queue, QueueHandle_t beo4_tx_queue) {
   }
   // attach interrupt to TSOP7000 output, and set to falling edge
   if(-1!=m_rx_pin) { 
-    pinMode(m_rx_pin, INPUT);
+    pinMode(m_rx_pin, INPUT_PULLUP);
     attachInterrupt(m_rx_pin, ir_pulse_isr, FALLING);
   } 
   return 0;
