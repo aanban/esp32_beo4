@@ -70,7 +70,7 @@ Cope a needed Json message into the clipboard, then follow the steps and the cor
 
 # Example of discovery message
 
-```c++
+```cpp
 // generates Home Assistant auto discovery MQTT message for BeoCode text sensor
 void discover_BeoCode(void) {
   if(mqttClient.connected()) {
@@ -99,3 +99,31 @@ void discover_BeoCode(void) {
   }
 }
 ```
+
+# Home Assistant MQTT integration state changes
+The topic `homeassistant/status` is subscribed, to detect state changes of the HA MQTT integration. Once it is restarted the discovery messages have to be send, in order to re-new the eps32beo4 device within Home Assistant. So the callback function checks the incoming MQTT messages like so:
+
+````cpp
+// mqtt callback: handles received mqtt messages, the payload can't 
+// be processed directly, it need to be copied into internal MqttMsg 
+// String. If status==online the MQTT integration was restarted, 
+// so the HomeAssistantDiscovery() has to be send again, to re-new 
+// the device within the MQTT Integration
+// @param topic, mqtt identifier
+// @param payload, mqtt data
+// @param length, length mqtt data
+void mqtt_cb(char* topic, byte* payload, unsigned int length) {
+  String MqttMsg;
+  for(unsigned int ii=0;ii<length;ii++) {
+    MqttMsg += (char)payload[ii]; 
+  } 
+  Serial.printf_P(PSTR("%s = %s len: %d \n"), topic, MqttMsg.c_str(), length);
+
+  if(String(topic) == String("homeassistant/status")) {
+    if(MqttMsg == "online") {
+      HomeAssistantDiscovery();
+    }
+  }
+}
+
+````
