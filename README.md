@@ -1,6 +1,8 @@
 # esp32_beo4
 Library for Bang & Olufsen Beo4 remote control, using a TSOP7000 IR receiver and a ESP32
-# 1. Usage
+# 1. Examples
+## 1.1 Example with beo4_task
+It turned out that the callback function is suitable to just print the codes, but time consuming usages will lead to disturbances of the receiver task. So the queue based beo4_task alternative is the recommended solution, like so:
 
 ```cpp
 #include <Arduino.h>
@@ -9,8 +11,6 @@ Library for Bang & Olufsen Beo4 remote control, using a TSOP7000 IR receiver and
 #define IR_RX_PIN 34            // IR receive pin
 IrBeo4 beo4(IR_RX_PIN);         // instance
 
-// solution with task and queue
-// 
 xQueueHandle beo4_rx_queue;     // queue 
 TaskHandle_t beo4_task_h;       // task handle
 
@@ -27,15 +27,6 @@ void beo4_task(void *parameter) {
 }
 
 
-// alternative solution with callback function
-//
-void beo_code_cb(uint32_t beo_code) {
-  Serial.printf("beo_code_cb: %04x %s %s \n",
-                beo_code,
-                beo_src_tbl(beo_code),
-                beo_cmd_tbl(beo_code));
-}
-
 void setup() {
   Serial.begin(115200);
   beo4_rx_queue = xQueueCreate(50, sizeof(uint32_t));
@@ -48,6 +39,12 @@ void loop() {
 }
 
 ```
+
+## 1.2 Home Assistant MQTT auto discovery example
+Using the MQTT auto discovery feature for Home Assistant integration
+Details see --> https://github.com/aanban/esp32_beo4/tree/main/examples/esp32_beo4_HA/readme.md
+
+![06_noise_pulse](examples/esp32_beo4_HA/doc/HA_esp32beo4_device.png)
 
 # 2. TSOP7000 Issues
 The Bang & Olufsen IR remote control Beo4 works with a carrier frequency of 455kHz. A suitable decoder device is the TSOP7000 from Vishay. However, the
