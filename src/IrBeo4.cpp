@@ -153,6 +153,8 @@ void IrBeo4::RxFsm(int64_t tsNew) {
     case rxSt::S0: {
       if(bZero==m_pCode) {
         m_rxFSM=rxSt::S1;      // next state -->  continue start sequence
+      } else if(bStart==m_pCode) {
+        m_rxFSM=rxSt::Data;    // next state -->  collect data
       } else {                 // frame corrupt
         resetRxFsm("ERR: FSM_S_0 state failed "); 
       }
@@ -161,6 +163,8 @@ void IrBeo4::RxFsm(int64_t tsNew) {
     case rxSt::S1: {
       if(bZero==m_pCode) {
         m_rxFSM=rxSt::Start;   //  next state -->  continue start sequence
+      } else if(bStart==m_pCode) {
+        m_rxFSM=rxSt::Data;    // next state -->  collect data
       } else {                 // frame corrupt
         resetRxFsm("ERR: S1 state failed ");
       }
