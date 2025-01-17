@@ -1,6 +1,27 @@
 # esp32_beo4
 Library for Bang & Olufsen Beo4 remote control, using a TSOP7000 IR receiver and a ESP32
 # 1. Examples
+*Notes:*
+*The pioarduino based arduino-esp32 platform is used, in order to support newer boards like ESP32-C6.*
+
+- arduino-esp32 migration 2.x to 3.0<br>
+https://docs.espressif.com/projects/arduino-esp32/en/latest/migration_guides/2.x_to_3.0.html#ledc
+
+- arduino-esp32 for platformio<br>
+https://github.com/pioarduino/platform-espressif32
+
+
+### `platformio.ini` 
+```
+[env:esp32dev]
+platform = https://github.com/pioarduino/platform-espressif32/releases/download/stable/platform-espressif32.zip
+board = esp32dev
+framework = arduino
+```
+
+
+
+
 ## 1.1 Example with beo4_task
 It turned out that the callback function is suitable to just print the codes, but time consuming usages will lead to disturbances of the receiver task. So the queue based beo4_task alternative is the recommended solution, like so:
 
