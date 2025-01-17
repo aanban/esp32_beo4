@@ -3,7 +3,6 @@
 
 #include "Arduino.h"
 
-
 // external call back functions
 extern __attribute__((weak)) void beo_code_cb(uint32_t beo_code);
 extern __attribute__((weak)) void beo_led_cb(uint8_t mode);
@@ -27,7 +26,8 @@ constexpr uint64_t t_corr=50;          ///< correction [microseconds]
 constexpr uint64_t t_low_pulse=200;    ///< carrier pulse time [microseconds]
 constexpr uint64_t t_pc=3125;          ///< ZERO pulsecode time [microseconds]
 constexpr uint64_t t_pc_half=1562;     ///< 0.5 pulsecode time [microseconds]
-
+constexpr uint32_t t_freq=455000;      ///< 455kHz carrier frequency
+constexpr uint32_t t_resolution=4;     ///< duty resolution (bits) --> range = [0..15] --> duty=8=50%
 constexpr uint32_t mskBC=0x0000FFFFul; ///< limit beoCode to 16 Bit
 
 // TSOP7000 noise debounce-time 
@@ -47,7 +47,6 @@ class IrBeo4 {
   private:
     int8_t     m_rx_pin  = -1;           ///< IR receive pin
     int8_t     m_tx_pin  = -1;           ///< IR transmit pin
-    int8_t     m_tx_pwm  = -1;           ///< IR transmit pwm channel
     int64_t    m_tsFrm   = 0;            ///< timestamp frame start
     int64_t    m_tsNew   = 0;            ///< timestamp new edge arrived
     int64_t    m_tsPre   = 0;            ///< timestamp previous edge
@@ -92,11 +91,11 @@ class IrBeo4 {
     // generate a 455kHz carrier-pulse and start the timer for the pulsecode pause
     // @param pulscode beo4 pulsecode [1..5]
     inline void tx_pc(uint8_t pulsecode) { 
-      ledcWrite(m_tx_pwm,7);
+      ledcWrite(m_tx_pin,8); // burst start
       esp_timer_start_once(m_OneShotTimer_h,t_low_pulse-t_corr);
       xEventGroupWaitBits(g_eg_handle, evPulse, pdTRUE, pdTRUE, portMAX_DELAY);
-      ledcWrite(m_tx_pwm,0); 
-      if(0 < pulsecode) { // no timer for the final carrier-pulse
+      ledcWrite(m_tx_pin,0); // burst end
+      if(0 < pulsecode) {    // no timer for the final carrier-pulse
         esp_timer_start_once(m_OneShotTimer_h, (pulsecode*t_pc)-t_low_pulse);
         xEventGroupWaitBits(g_eg_handle, evPulse, pdTRUE, pdTRUE, portMAX_DELAY); 
       } 
@@ -124,8 +123,7 @@ class IrBeo4 {
     // constructor
     // @param rx_pin input IR receiver pin
     // @param tx_pin output IR transmit pin (default=-1, not used)
-    // @param tx_pwm output IR transmit pwm-channel (default=-1, not used)
-    IrBeo4(int8_t rx_pin, int8_t tx_pin=-1, int8_t tx_pwm=-1);
+    IrBeo4(int8_t rx_pin, int8_t tx_pin=-1);
     
     // destructor
     ~IrBeo4();

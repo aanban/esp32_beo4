@@ -45,10 +45,9 @@ void beo4_tx_task(void *param) {
     };
     esp_timer_create(&OneShotTimer_args, &beo4->m_OneShotTimer_h);
 
-    // setup the PMW and attach to IR transmit pin
-    ledcSetup(beo4->m_tx_pwm,455000,4);  // pCarrier=455kHz,duty_range=[0..15]
-    ledcAttachPin(beo4->m_tx_pin,beo4->m_tx_pwm); // attach to transmit pin
-    ledcWrite(beo4->m_tx_pwm,0);         // duty=0 --> wake up with output=low
+    // attach to pin, set carrier=455kHz and set resolution for duty-range=[0..15]
+    ledcAttach(beo4->m_tx_pin,t_freq,t_resolution);  
+    ledcWrite(beo4->m_tx_pin,0);  // duty=0 to start everything with output=low
 
     for(;;) {  // wait until beoCodes arrive at queue
       if(pdTRUE != xQueueReceive(beo4->m_beo4_tx_queue,&beoCode,portMAX_DELAY)) { 
@@ -97,10 +96,9 @@ void IRAM_ATTR one_shot_timer_cb(void* arg) {
 // ------------------------------------------------------------------------------------------------
 
 // constructor
-IrBeo4::IrBeo4(int8_t rx_pin,int8_t tx_pin, int8_t tx_pwm) {
+IrBeo4::IrBeo4(int8_t rx_pin,int8_t tx_pin) {
   m_rx_pin = rx_pin;
   m_tx_pin = tx_pin;
-  m_tx_pwm = tx_pwm;
   m_rxFSM  = rxSt::Idle;
 }
 
@@ -120,7 +118,7 @@ int IrBeo4::Begin(QueueHandle_t beo4_rx_queue, QueueHandle_t beo4_tx_queue) {
   if(pdPASS!=xTaskCreatePinnedToCore(beo4_rx_task,"beo4_rx_task",2048,this,1,&m_beo4_rx_task,0))
     return -2; 
   // create transmit task
-  if(-1!=m_tx_pin && -1!=m_tx_pwm) {
+  if(-1!=m_tx_pin) {
     if(pdPASS!=xTaskCreate(beo4_tx_task, "beo4_tx_task", 2048,this,1,&m_beo4_tx_task))
       return -3;
   }
@@ -163,7 +161,7 @@ void IrBeo4::RxFsm(int64_t tsNew) {
     case rxSt::S1: {
       if(bZero==m_pCode) {
         m_rxFSM=rxSt::Start;   //  next state -->  continue start sequence
-      } else if(bStart==m_pCode) {
+      } else if(bStart==m_pCode) { 
         m_rxFSM=rxSt::Data;    // next state -->  collect data
       } else {                 // frame corrupt
         resetRxFsm("ERR: S1 state failed ");

@@ -9,21 +9,25 @@ uint32_t ts_l=0;                 // timestamp status loop
 
 // Beo4 stuff
 #define IR_RX_PIN 34             // IR receive pin
-IrBeo4 beo4(IR_RX_PIN);          // receive only
+#define IR_TX_PIN 33             // IR transmit pin 
+IrBeo4 beo4(IR_RX_PIN,IR_TX_PIN);// receive, transmit
 xQueueHandle beo4_rx_queue;      // queue for beo4codes from receiver
+xQueueHandle beo4_tx_queue;      // queue for beo4codes from transmitter
 TaskHandle_t beo4_task_h;
 
 // WiFi stuff
 #include "secrets.h"             // wifi user/pass mqtt user/pass
 
 // MQTT stuff
-#include "PubSubClient.h"        // from https://github.com/knolleary/pubsubclient.git
-constexpr const char* gVersion   = "1.2.0";                // application version HA
-constexpr const char* gModel     = "ESP32 Beo4 gateway";   // device information HA
-constexpr const char* gDevice    = "esp32beo4";            // device name HA
-constexpr const char* topic_diag = "esp32beo4/diag";       // diagnostics section
-constexpr const char* topic_sens = "esp32beo4/sens";       // sensor section
-constexpr const char* topic_HA   = "homeassistant/status"; // status from Home Assistant
+#include "PubSubClient.h"         // from https://github.com/knolleary/pubsubclient.git
+constexpr const char* gVersion    = "1.2.0";                // application version HA
+constexpr const char* gModel      = "ESP32 Beo4 gateway";   // device information HA
+constexpr const char* gDevice     = "esp32beo4";            // device name HA
+constexpr const char* topic_diag  = "esp32beo4/diag";       // diagnostics section
+constexpr const char* topic_sens  = "esp32beo4/sens";       // sensor section
+constexpr const char* topic_trans = "esp32beo4/trans";      // command to be transmitted
+constexpr const char* topic_HA    = "homeassistant/status"; // status from Home Assistant
+
 
 WiFiClient wClient;              // general wifi-client 
 PubSubClient mqttClient(wClient);// mqtt client derived from wifi-client
@@ -266,10 +270,17 @@ void mqtt_cb(char* topic, byte* payload, unsigned int length) {
   String MqttMsg;
   for(unsigned int ii=0;ii<length;ii++) {
     MqttMsg += (char)payload[ii]; 
-  } 
+  }
+  String sTopic=String(topic);
   Serial.printf_P(PSTR("%s = %s len: %d \n"), topic, MqttMsg.c_str(), length);
-
-  if(String(topic) == String("homeassistant/status")) {
+  if(sTopic == String(topic_trans)){
+    int32_t beoCode=0;
+    char *str_mqtt=(char *) MqttMsg.c_str();
+    sscanf(str_mqtt,"%x",&beoCode);
+    Serial.printf_P(PSTR("MQTT --> %04x --> (%s,%s) \n"),beoCode,beo_src_tbl(beoCode), beo_cmd_tbl(beoCode),beoCode);
+    xQueueSend(beo4_tx_queue,&beoCode,0);
+  }
+  else if(sTopic == String("homeassistant/status")) {
     if(MqttMsg == "online") {
       HomeAssistantDiscovery();
     }
@@ -284,6 +295,7 @@ void connect_mqtt(void) {
     mqttClient.setBufferSize(1024);  // default size is 256, increase to 1024
     Serial.printf_P(PSTR(" OK\n"));
     mqttClient.subscribe(topic_HA);
+    mqttClient.subscribe(topic_trans);
     HomeAssistantDiscovery(); 
   } else {
     Serial.printf_P(PSTR("failed, rc=%d \n try again in 5 seconds \n"),mqttClient.state());
@@ -329,8 +341,9 @@ void setup_beo4(void) {
   static int beo4_ok=-1; 
   Serial.printf(PSTR("===> start beo4... ")); 
   beo4_rx_queue = xQueueCreate(50, sizeof(uint32_t));
+  beo4_tx_queue = xQueueCreate(50, sizeof(uint32_t));
   xTaskCreatePinnedToCore(beo4_task,"beo4_task",10000,NULL,0,&beo4_task_h,0);
-  beo4_ok=beo4.Begin(beo4_rx_queue);  // start beo4 receiver only
+  beo4_ok=beo4.Begin(beo4_rx_queue,beo4_tx_queue);  // start beo4 receiver only
   Serial.printf(PSTR("%s\n"),beo4_ok==0? "OK":"failed");
 }
 
