@@ -21,21 +21,21 @@ void beo4_task(void *parameter) {
 
 // alternative solution with callback function
 //
-void beo_code_cb(uint32_t beo_code) {
-  Serial.printf("beo_code_cb: %04x %s %s \n", beo_code,beo_src_tbl(beo_code),beo_cmd_tbl(beo_code));
-}
+// void beo_code_cb(uint32_t beo_code) {
+//   Serial.printf("beo_code_cb: %04x %s %s \n", beo_code,beo_src_tbl(beo_code),beo_cmd_tbl(beo_code));
+// }
 
 // led call back function
 //
-constexpr uint8_t led_pin=5;
-void beo_led_cb(uint8_t mode){
-  digitalWrite(led_pin,mode);
-}
+// constexpr uint8_t led_pin=2;
+// void beo_led_cb(uint8_t mode){
+//   digitalWrite(led_pin,mode);
+// }
 
 void setup() {
   Serial.begin(115200);
-  pinMode(led_pin,OUTPUT);    // led for callback
-  digitalWrite(led_pin,HIGH); // led off
+  // pinMode(led_pin,OUTPUT);    // led for callback
+  // digitalWrite(led_pin,HIGH); // led off
   beo4_rx_queue = xQueueCreate(50, sizeof(uint32_t));
   xTaskCreatePinnedToCore(beo4_task,"beo4_task",10000,NULL,0,&beo4_task_h,0);
   beo4.Begin(beo4_rx_queue);
