@@ -1,6 +1,6 @@
 {
   "name": "esp32_beo4",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "decoder for B&O remote control beo4, TSOP7000 + monoflop",
   "author": "aanban",
   "license": "MIT license",
