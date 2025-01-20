@@ -88,17 +88,29 @@ class IrBeo4 {
       return this->m_wait;
     }
 
+    // // generate a 455kHz carrier-pulse and start the timer for the pulsecode pause
+    // // @param pulscode beo4 pulsecode [1..5]
+    // inline void tx_pc(uint8_t pulsecode) { 
+    //   ledcWrite(m_tx_pin,8); // burst start
+    //   esp_timer_start_once(m_OneShotTimer_h,t_low_pulse-t_corr);
+    //   xEventGroupWaitBits(g_eg_handle, evPulse, pdTRUE, pdTRUE, portMAX_DELAY);
+    //   ledcWrite(m_tx_pin,0); // burst end
+    //   if(0 < pulsecode) {    // no timer for the final carrier-pulse
+    //     esp_timer_start_once(m_OneShotTimer_h, (pulsecode*t_pc)-t_low_pulse);
+    //     xEventGroupWaitBits(g_eg_handle, evPulse, pdTRUE, pdTRUE, portMAX_DELAY); 
+    //   } 
+    // }
+
     // generate a 455kHz carrier-pulse and start the timer for the pulsecode pause
     // @param pulscode beo4 pulsecode [1..5]
     inline void tx_pc(uint8_t pulsecode) { 
-      ledcWrite(m_tx_pin,8); // burst start
-      esp_timer_start_once(m_OneShotTimer_h,t_low_pulse-t_corr);
-      xEventGroupWaitBits(g_eg_handle, evPulse, pdTRUE, pdTRUE, portMAX_DELAY);
-      ledcWrite(m_tx_pin,0); // burst end
+      uint32_t pulse_width=(uint32_t)(((uint64_t)pulsecode*t_pc)-t_low_pulse);
+      ledcWrite(m_tx_pin,8); // turn carrier on
+      delayMicroseconds(200);
+      ledcWrite(m_tx_pin,0); // turn carrier off
       if(0 < pulsecode) {    // no timer for the final carrier-pulse
-        esp_timer_start_once(m_OneShotTimer_h, (pulsecode*t_pc)-t_low_pulse);
-        xEventGroupWaitBits(g_eg_handle, evPulse, pdTRUE, pdTRUE, portMAX_DELAY); 
-      } 
+        delayMicroseconds(pulse_width);
+      }
     }
 
 

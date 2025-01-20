@@ -14,6 +14,8 @@ constexpr uint8_t bStart = 5;  // pulsewidth=15625
 
 constexpr uint8_t nBit   = 17; // number of data bits in frame
 
+static portMUX_TYPE my_spinlock = portMUX_INITIALIZER_UNLOCKED;
+
 // receiver task
 void beo4_rx_task(void *handle) {
   if(NULL!=handle) {
@@ -33,7 +35,7 @@ void beo4_tx_task(void *param) {
   if(NULL!=param) {
     IrBeo4 *beo4 = (IrBeo4*) param; // get access to class
     static uint32_t beoCode=0;      // beoCode to be transmitted
-    static uint32_t ic=0;           // bit counter
+    static uint32_t ic=0,jc=0;      // bit counter
     static uint32_t curBit=0;       // current bitCode
     static uint32_t preBit=0;       // previous bitCode
 
@@ -55,14 +57,15 @@ void beo4_tx_task(void *param) {
         continue;
       }
       // generate carrier pulses and pauses according to beoCode
+      taskENTER_CRITICAL(&my_spinlock);
       beo4->tx_pc(bZero);        // send start sequence: 1,1,5
       beo4->tx_pc(bZero);
       beo4->tx_pc(bStart);
       beo4->tx_pc(bZero);        // send beoLink (always bZero)
       curBit=preBit=0;           // init current and previous Bit
-      for(ic=0;ic<16;ic++) {     // generate 16 data bits of BeoCode
+      for(jc=15,ic=0;ic<16;ic++,jc--) {     // generate 16 data bits of BeoCode
         uint8_t pulseCode=0;
-        curBit=(beoCode>>ic) & 1;
+        curBit=(beoCode>>jc) & 1;
         if(curBit==preBit) pulseCode=bSame;
         else if(1==curBit) pulseCode=bOne;
         else               pulseCode=bZero;
@@ -71,6 +74,7 @@ void beo4_tx_task(void *param) {
       }
       beo4->tx_pc(bStop);        // send stop code
       beo4->tx_pc(0);            // finish frame with final carrier pulse
+      taskEXIT_CRITICAL(&my_spinlock);
     }
   } // if(NULL!=parameter)
 }
@@ -108,25 +112,23 @@ IrBeo4::~IrBeo4() {
 
 // initialize beo4 decoder
 int IrBeo4::Begin(QueueHandle_t beo4_rx_queue, QueueHandle_t beo4_tx_queue) {
-  // store receive and transmit queue
-  m_beo4_rx_queue=beo4_rx_queue;
-  m_beo4_tx_queue=beo4_tx_queue;
-  // create queue for interupt-service-routine
-  if(NULL==(g_isr_queue=xQueueCreate(100, sizeof(int64_t))))
-    return -1;
-  // create receive task
-  if(pdPASS!=xTaskCreatePinnedToCore(beo4_rx_task,"beo4_rx_task",2048,this,1,&m_beo4_rx_task,0))
-    return -2; 
-  // create transmit task
-  if(-1!=m_tx_pin) {
-    if(pdPASS!=xTaskCreate(beo4_tx_task, "beo4_tx_task", 2048,this,1,&m_beo4_tx_task))
-      return -3;
-  }
-  // attach interrupt to TSOP7000 output, and set to falling edge
   if(-1!=m_rx_pin) { 
+    m_beo4_rx_queue=beo4_rx_queue;
+    // create queue for interupt-service-routine
+    if(NULL==(g_isr_queue=xQueueCreate(100, sizeof(int64_t))))
+      return -1;
+    // create receive task
+    if(pdPASS!=xTaskCreatePinnedToCore(beo4_rx_task,"beo4_rx_task",2048,this,1,&m_beo4_rx_task,0))
+      return -2; 
+    // attach pin to TSOP7000 output and set to falling edge
     pinMode(m_rx_pin, INPUT_PULLUP);
     attachInterrupt(m_rx_pin, ir_pulse_isr, FALLING);
   } 
+  if(-1!=m_tx_pin) {
+    m_beo4_tx_queue=beo4_tx_queue;
+    if(pdPASS!=xTaskCreate(beo4_tx_task, "beo4_tx_task", 2048,this,1,&m_beo4_tx_task))
+      return -3;
+  }
   return 0;
 }
 
