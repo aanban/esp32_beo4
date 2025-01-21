@@ -22,7 +22,7 @@ framework = arduino
 
 
 
-## 1.1 Example with beo4_task
+## 1.1 Example with receive task (examples/esp32_beo4_rx)
 It turned out that the callback function is suitable to just print the codes, but time consuming usages will lead to disturbances of the receiver task. So the queue based beo4_task alternative is the recommended solution, like so:
 
 ```cpp
@@ -61,7 +61,67 @@ void loop() {
 
 ```
 
-## 1.2 Home Assistant MQTT auto discovery example
+## 1.2 Example with transmit task (examples/esp32_beo4_tx)
+It shows how to start the transmit task only. The table `beoCodes[]` has 10 entries with several beo4-Codes. A queue is created within `setup_beo4_tx()`. Within the `loop()` every 2 seconds the next code from the table is send to the queue and within the task `beo4_tx_task()` the output signal is generated for `GPIO32`, i.e. 455khz carrier pulses (length=200µs) framing the pauses according to the bits of the current beo4-code.
+```cpp
+#include <Arduino.h>
+#include "IrBeo4.h"
+#include "IrBeo4Info.h"
+
+// Beo4 stuff
+constexpr uint8_t IR_TX_PIN = 32;      // IR transmit pin 
+constexpr uint8_t numBeo    = 10;
+static IrBeo4 beo4(-1,IR_TX_PIN);      // transmit only
+static xQueueHandle beo4_tx_queue;     // queue for beo4codes from transmitter
+static uint32_t beoCnt=0;              // loop counter thru beoCodes[]
+static uint32_t beoCodes[numBeo] = {   // sample of Beo4-Codes
+  ((uint32_t)BEO_SRC_AUDIO << 8) + (uint32_t)BEO_CMD_VOL_UP,
+  ((uint32_t)BEO_SRC_AUDIO << 8) + (uint32_t)BEO_CMD_VOL_DOWN,
+  ((uint32_t)BEO_SRC_AUDIO << 8) + (uint32_t)BEO_CMD_RADIO,
+  ((uint32_t)BEO_SRC_VIDEO << 8) + (uint32_t)BEO_CMD_TV,
+  ((uint32_t)BEO_SRC_AUDIO << 8) + (uint32_t)BEO_CMD_CD,
+  ((uint32_t)BEO_SRC_AUDIO << 8) + (uint32_t)BEO_CMD_NUM_1,
+  ((uint32_t)BEO_SRC_AUDIO << 8) + (uint32_t)BEO_CMD_NUM_2,
+  ((uint32_t)BEO_SRC_LIGHT << 8) + (uint32_t)BEO_CMD_NUM_0,
+  ((uint32_t)BEO_SRC_LIGHT << 8) + (uint32_t)BEO_CMD_NUM_1,
+  ((uint32_t)BEO_SRC_LIGHT << 8) + (uint32_t)BEO_CMD_NUM_2,
+};
+
+// example for a transmit only device: create beo4_tx_queue and call 
+// beo4.Begin(NULL,beo4_tx_queue), this will skip the beo4_rx_task() 
+// and start the beo4_tx_task() only
+void setup_beo4_tx(void) {
+  pinMode(IR_TX_PIN, OUTPUT);
+  Serial.printf(PSTR("===> start beo4... ")); 
+  beo4_tx_queue = xQueueCreate(50, sizeof(uint32_t)); 
+  static int beo4_ok=beo4.Begin(NULL,beo4_tx_queue);
+  Serial.printf(PSTR("%s\n"),beo4_ok==0? "OK":"failed");
+}
+
+constexpr unsigned long period=2000;   // do something every 2 sec.
+static unsigned long t0=0;             // timestamp to compare with
+
+void setup() {
+  Serial.begin(115200);
+  setup_beo4_tx();
+  t0=millis();
+}
+
+void loop() {
+  unsigned long t1=millis();
+  if((t1-t0) > period) {
+    uint32_t beoCode=beoCodes[beoCnt];
+    xQueueSend(beo4_tx_queue,&beoCode,0);
+    beoCnt = (beoCnt < numBeo-1) ? beoCnt+1 : 0;
+    t0=millis();
+  }
+}
+
+
+```
+
+
+## 1.3 Home Assistant MQTT auto discovery example
 Using the MQTT auto discovery feature for Home Assistant integration
 Details see --> https://github.com/aanban/esp32_beo4/tree/main/examples/esp32_beo4_HA/readme.md
 
