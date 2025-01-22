@@ -2,8 +2,6 @@
 
 // global variables
 DRAM_ATTR xQueueHandle       g_isr_queue;  // isr queue:  ir_pulse_isr() --queue--> beo4_rx_task() 
-DRAM_ATTR EventGroupHandle_t g_eg_handle;  // handle eventgroup timer-events
-
 
 // Beo4 PulseCode = PulseWidth / 3125
 constexpr uint8_t bZero  = 1;  // pulsewidth= 3125
@@ -11,10 +9,9 @@ constexpr uint8_t bSame  = 2;  // pulsewidth= 6250
 constexpr uint8_t bOne   = 3;  // pulsewidth= 9375
 constexpr uint8_t bStop  = 4;  // pulsewidth=12500
 constexpr uint8_t bStart = 5;  // pulsewidth=15625
+constexpr uint8_t nBit   = 17; // data bits in frame
 
-constexpr uint8_t nBit   = 17; // number of data bits in frame
-
-static portMUX_TYPE my_spinlock = portMUX_INITIALIZER_UNLOCKED;
+static portMUX_TYPE beo4_tx_mutex = portMUX_INITIALIZER_UNLOCKED;
 
 // receiver task
 void beo4_rx_task(void *handle) {
@@ -39,14 +36,6 @@ void beo4_tx_task(void *param) {
     static uint32_t curBit=0;       // current bitCode
     static uint32_t preBit=0;       // previous bitCode
 
-    // create events and timer
-    g_eg_handle = xEventGroupCreate();
-    const esp_timer_create_args_t OneShotTimer_args = {
-      .callback = &one_shot_timer_cb,
-      .name = "OneShotTimer"
-    };
-    esp_timer_create(&OneShotTimer_args, &beo4->m_OneShotTimer_h);
-
     // attach to pin, set carrier=455kHz and set resolution for duty-range=[0..15]
     ledcAttach(beo4->m_tx_pin,t_freq,t_resolution);  
     ledcWrite(beo4->m_tx_pin,0);  // duty=0 to start everything with output=low
@@ -56,25 +45,29 @@ void beo4_tx_task(void *param) {
         ets_printf("TaskBeoTx().xQueueReceive() failed ");  
         continue;
       }
+
       // generate carrier pulses and pauses according to beoCode
-      taskENTER_CRITICAL(&my_spinlock);
-      beo4->tx_pc(bZero);        // send start sequence: 1,1,5
-      beo4->tx_pc(bZero);
-      beo4->tx_pc(bStart);
-      beo4->tx_pc(bZero);        // send beoLink (always bZero)
-      curBit=preBit=0;           // init current and previous Bit
-      for(jc=15,ic=0;ic<16;ic++,jc--) {     // generate 16 data bits of BeoCode
-        uint8_t pulseCode=0;
-        curBit=(beoCode>>jc) & 1;
-        if(curBit==preBit) pulseCode=bSame;
-        else if(1==curBit) pulseCode=bOne;
-        else               pulseCode=bZero;
-        preBit=curBit;
-        beo4->tx_pc(pulseCode);  // send pulsecode for current Bit
-      }
-      beo4->tx_pc(bStop);        // send stop code
-      beo4->tx_pc(0);            // finish frame with final carrier pulse
-      taskEXIT_CRITICAL(&my_spinlock);
+      // a complete frame needs < 150ms. To avoid interrupts, that may affect 
+      // the timing this block is protected with an mutex. 
+      taskENTER_CRITICAL(&beo4_tx_mutex);
+        beo4->tx_pc(bZero);        // send start sequence: 1,1,5
+        beo4->tx_pc(bZero);
+        beo4->tx_pc(bStart);
+        beo4->tx_pc(bZero);        // send beoLink (always bZero)
+        curBit=preBit=0;           // init current and previous Bit
+        for(jc=15,ic=0;ic<16;ic++,jc--) {     // generate 16 data bits of BeoCode
+          uint8_t pulseCode=0;
+          curBit=(beoCode>>jc) & 1;
+          if(curBit==preBit) pulseCode=bSame;
+          else if(1==curBit) pulseCode=bOne;
+          else               pulseCode=bZero;
+          preBit=curBit;
+          beo4->tx_pc(pulseCode);  // send pulsecode for current Bit
+        }
+        beo4->tx_pc(bStop);        // send stop code
+        beo4->tx_pc(0);            // finish frame with final carrier pulse
+      taskEXIT_CRITICAL(&beo4_tx_mutex);
+
     }
   } // if(NULL!=parameter)
 }
@@ -87,12 +80,6 @@ void IRAM_ATTR ir_pulse_isr(void) {
     xQueueSend(g_isr_queue,&tsNew,0);  // send timestamp to queue if valid low pulse
     tsPre=tsNew;
   }
-}
-
-// one-shot-timer callback function 
-void IRAM_ATTR one_shot_timer_cb(void* arg) {
-  BaseType_t xHigherPriorityTaskWoken;
-  xEventGroupSetBitsFromISR(g_eg_handle, evPulse, &xHigherPriorityTaskWoken);
 }
 
 // ------------------------------------------------------------------------------------------------
@@ -112,19 +99,16 @@ IrBeo4::~IrBeo4() {
 
 // initialize beo4 decoder
 int IrBeo4::Begin(QueueHandle_t beo4_rx_queue, QueueHandle_t beo4_tx_queue) {
-  if(-1!=m_rx_pin) { 
+  if(-1!=m_rx_pin && NULL!=beo4_rx_queue) { 
     m_beo4_rx_queue=beo4_rx_queue;
-    // create queue for interupt-service-routine
     if(NULL==(g_isr_queue=xQueueCreate(100, sizeof(int64_t))))
       return -1;
-    // create receive task
     if(pdPASS!=xTaskCreatePinnedToCore(beo4_rx_task,"beo4_rx_task",2048,this,1,&m_beo4_rx_task,0))
       return -2; 
-    // attach pin to TSOP7000 output and set to falling edge
     pinMode(m_rx_pin, INPUT_PULLUP);
     attachInterrupt(m_rx_pin, ir_pulse_isr, FALLING);
   } 
-  if(-1!=m_tx_pin) {
+  if(-1!=m_tx_pin && NULL!=beo4_tx_queue) {
     m_beo4_tx_queue=beo4_tx_queue;
     if(pdPASS!=xTaskCreate(beo4_tx_task, "beo4_tx_task", 2048,this,1,&m_beo4_tx_task))
       return -3;
@@ -145,9 +129,6 @@ void IrBeo4::RxFsm(int64_t tsNew) {
       m_bc=0;
       m_tsFrm=m_tsNew;         // timestamp start-of-frame
       m_rxFSM=rxSt::S0;        // next state -->  begin sequence next
-      if(beo_led_cb) {
-        beo_led_cb(LOW);       // turn LED on to indicate active frame
-      }
       break;
     } 
     case rxSt::S0: {
@@ -173,6 +154,7 @@ void IrBeo4::RxFsm(int64_t tsNew) {
     case rxSt::Start: {
       if(bStart==m_pCode) {
         m_rxFSM=rxSt::Data;    // next state -->  collect data
+        LED(HIGH);             // active frame --> LED ON 
       } else {                 // frame corrupt
         resetRxFsm("ERR: Start state failed ");
       }
@@ -189,7 +171,7 @@ void IrBeo4::RxFsm(int64_t tsNew) {
           return; 
         }
       }
-      m_beoCode=(m_beoCode<<1)+curBit;  // fill current Bit into beoCode
+      m_beoCode=(m_beoCode<<1)+curBit;  // shift Bit into beoCode
       if((++m_bc)==nBit) {
         m_rxFSM=rxSt::Stop;     // next state -->  check the stopCode
       }
@@ -198,9 +180,6 @@ void IrBeo4::RxFsm(int64_t tsNew) {
     case rxSt::Stop: {
       if(bStop==m_pCode) {     // final check of stop-code
         m_beoCode &= mskBC;    // mask and store valid beoCode
-        if(beo_code_cb) {      // send to callback function 
-          beo_code_cb(m_beoCode); 
-        }
         if(m_beo4_rx_queue) {  // send to queue
           xQueueSend(m_beo4_rx_queue,&m_beoCode,0);
         }
