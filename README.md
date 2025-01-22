@@ -23,7 +23,7 @@ framework = arduino
 
 
 ## 1.1 Example with receive task (examples/esp32_beo4_rx)
-It turned out that the callback function is suitable to just print the codes, but time consuming usages will lead to disturbances of the receiver task. So the queue based beo4_task alternative is the recommended solution, like so:
+In previous releases there was the call back function `beo_code_cb()`, but it turned out that it is suitable to just print the codes, but anything else will generate to disturbances of the receiver task ending in unreadable codes. Therefore the critical call back funtion `beo_code_cb()` was removed. The queue based aproach is the better solution. A simple receiver main.cpp example looks like so:
 
 ```cpp
 #include <Arduino.h>
@@ -266,14 +266,7 @@ The 17 Bit payload is devided into 3 data fields `` beoLink `` (1-Bit), `` beoSo
    | PulseCode | 115  | 1      | 2222 2222| 3122 2222 |  4   |
    | BitCode   |      | 0      | 0000 0000| 1000 0000 |      |
    | beoCode   |      | 0      | 0x00     | 0x80      |      |
-
-``` 
-   beoCode     = 0x0080          
-   beoLink     = 0               
-   beoSource   = 0x00 --> video  
-   beoCommand  = 0x80 --> TV     
-   Button      = TV on           
-```
+   | Button    |      |        | video    | TV on     |      |
 
 ### 3.2.2. Example of the "LIGHT - #9" button
 
@@ -281,15 +274,27 @@ The 17 Bit payload is devided into 3 data fields `` beoLink `` (1-Bit), `` beoSo
    |----------:| -----|:------:|:--------:|:---------:|:----:|
    | PulseCode | 115  | 1      | 2223 2132| 1222 3123 |   4  |
    | BitCode   |      | 0      | 0001 1011| 0000 1001 |      |
-   | beoCoode  |      | 0      | 0x1B     | 0x09      |      |
+   | beoCode   |      | 0      | 0x1B     | 0x09      |      |
+   | Button    |      |        | light    | # 9       |      |
 
-``` 
-   beoCode     = 0x1B09          
-   beoLink     = 0               
-   beoSource   = 0x1B -->  LIGHT 
-   beoCommand  = 0x09 -->  9     
-   Button      = LIGHT / 9       
-```
+### 3.2.3. Example of the "Audio - vol++" button
+
+   |           | Start|beoLink |beoSource |beoCommand | Stop |
+   |----------:| -----|:------:|:--------:|:---------:|:----:|
+   | PulseCode | 115  | 1      | 2222 2223| 1321 2222 |   4  |
+   | BitCode   |      | 0      | 0000 0001| 0110 0000 |      |
+   | beoCode   |      | 0      | 0x01     | 0x60      |      |
+   | Button    |      |        | audio    | vol++     |      |
+
+### 3.2.4. Example of the "Audio - vol--" button
+
+   |           | Start|beoLink |beoSource |beoCommand | Stop |
+   |----------:| -----|:------:|:--------:|:---------:|:----:|
+   | PulseCode | 115  | 1      | 2222 2223| 1321 2312 |   4  |
+   | BitCode   |      | 0      | 0000 0001| 0110 0100 |      |
+   | beoCode   |      | 0      | 0x01     | 0x64      |      |
+   | Button    |      |        | audio    | vol--     |      |
+
 
 
 > [!NOTE]
