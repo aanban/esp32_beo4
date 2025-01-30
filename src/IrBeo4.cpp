@@ -45,7 +45,7 @@ void beo4_tx_task(void *param) {
         ets_printf("TaskBeoTx().xQueueReceive() failed ");  
         continue;
       }
-
+      beo4->LED(HIGH);             // start transmitting frame --> LED ON 
       // generate carrier pulses and pauses according to beoCode
       // a complete frame needs < 150ms. To avoid interrupts, that may affect 
       // the timing this block is protected with an mutex. 
@@ -67,7 +67,7 @@ void beo4_tx_task(void *param) {
         beo4->tx_pc(bStop);        // send stop code
         beo4->tx_pc(0);            // finish frame with final carrier pulse
       taskEXIT_CRITICAL(&beo4_tx_mutex);
-
+      beo4->LED(LOW);              // frame transmitted --> LED OFF 
     }
   } // if(NULL!=parameter)
 }
