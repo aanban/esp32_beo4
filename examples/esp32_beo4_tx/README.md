@@ -59,3 +59,11 @@ void loop() {
 
 ```
 
+# IR Sender Hardware
+This circuit with two TIP121 transistors, which I had in my tinkering box, was successfully tested with a BeoSystem 2500 system. The transmitter also worked at the other end of the room (approx. 7m). It should be noted that the receivers in the Beo systems are designed for 880nm. The TSHA6500 diodes from Vishay, for example, are therefore suitable.
+![thsa6500](../../doc/beo4_ir_tsha6500_tip121.png)
+
+Another circuit from a B&O service manual should also work well. However, the transistors must be soldered as SMDs. 
+![beo-ref](../../doc/beo4_ir_reference.png)
+
+
