@@ -1,5 +1,5 @@
 # esp32_beo4
-Library for Bang & Olufsen Beo4 remote control, using a TSOP7000 IR receiver and a ESP32
+Library for Bang & Olufsen Beo4 remote control, using a TSOP7000 IR receiver and a TSHA6500 IR Sender and a ESP32. The receiver routine beo4_rx_task() and the sender routine beo4_tx_task() are accessed via queues.
 # 1. Examples
 *Notes:*
 *The pioarduino based arduino-esp32 platform is used, in order to support newer boards like ESP32-C6.*
@@ -19,50 +19,14 @@ board = esp32dev
 framework = arduino
 ```
 
-
-
-
 ## 1.1 Example with receive task (examples/esp32_beo4_rx)
-In previous releases there was the call back function `beo_code_cb()`, but it turned out that it is suitable to just print the codes, but anything else will generate to disturbances of the receiver task ending in unreadable codes. Therefore the critical call back funtion `beo_code_cb()` was removed. The queue based aproach is the better solution. A simple receiver main.cpp example looks like so:
-
-```cpp
-#include <Arduino.h>
-#include "IrBeo4.h"
-
-#define IR_RX_PIN 34            // IR receive pin
-IrBeo4 beo4(IR_RX_PIN);         // instance
-
-xQueueHandle beo4_rx_queue;     // queue 
-TaskHandle_t beo4_task_h;       // task handle
-
-void beo4_task(void *parameter) {
-  static uint32_t beo4Code=0;
-  while(1) {
-    if(pdTRUE==xQueueReceive(beo4_rx_queue,(void*)(&beo4Code),portMAX_DELAY)) {
-      Serial.printf("beo4_task:   %04x %s %s\n",
-                    beo4Code,
-                    beo_src_tbl(beo4Code),
-                    beo_cmd_tbl(beo4Code));
-    }
-  }
-}
+In previous releases there was the call back function `beo_code_cb()`, but it turned out that it is suitable to just print the codes, but anything else will generate to disturbances of the receiver task ending in unreadable codes. Therefore the critical call back funtion `beo_code_cb()` was removed. The queue based aproach is the better solution. Details see --> [esp32_beo4_rx](https://github.com/aanban/esp32_beo4/tree/main/examples/esp32_beo4_rx)
 
 
-void setup() {
-  Serial.begin(115200);
-  beo4_rx_queue = xQueueCreate(50, sizeof(uint32_t));
-  xTaskCreatePinnedToCore(beo4_task,"beo4_task",10000,NULL,0,&beo4_task_h,0);
-  beo4.Begin(beo4_rx_queue);
-  printf("beo4 started, RX=%d\n",IR_RX_PIN);
-}
 
-void loop() {
-}
-
-```
 
 ## 1.2 Example with transmit task (examples/esp32_beo4_tx)
-An example of the send function can be found under examples/esp32_beo4_tx. There is also a working circuit for the IR transmitter. The use of 880nm IR diodes is recommended, in the B&O service manuals you will find references to the receiver circuit and 880nm wavelength is described there. Details see --> [esp32_beo4_tx](https://github.com/aanban/esp32_beo4/tree/main/examples/esp32_beo4_tx/readme.txt)
+An example of the transmit function can be found under examples/esp32_beo4_tx. There is also a working circuit for the IR transmitter. The use of 880nm IR diodes is recommended, in the B&O service manuals you will find references to receiver circuits operating at 880nm wavelength. Details see --> [esp32_beo4_tx](https://github.com/aanban/esp32_beo4/tree/main/examples/esp32_beo4_tx)
 
 
 
