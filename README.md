@@ -5,10 +5,10 @@ Library for Bang & Olufsen Beo4 remote control, using a TSOP7000 IR receiver and
 *The pioarduino based arduino-esp32 platform is used, in order to support newer boards like ESP32-C6.*
 
 - arduino-esp32 migration 2.x to 3.0<br>
-https://docs.espressif.com/projects/arduino-esp32/en/latest/migration_guides/2.x_to_3.0.html#ledc
+Details see --> [migration_guides/2.x_to_3.0](https://docs.espressif.com/projects/arduino-esp32/en/latest/migration_guides/2.x_to_3.0.html#ledc)
 
 - arduino-esp32 for platformio<br>
-https://github.com/pioarduino/platform-espressif32
+Details see --> [platform-espressif32](https://github.com/pioarduino/platform-espressif32)
 
 
 ### `platformio.ini` 
@@ -62,14 +62,14 @@ void loop() {
 ```
 
 ## 1.2 Example with transmit task (examples/esp32_beo4_tx)
-An example of the send function can be found under examples/esp32_beo4_tx. There is also a working circuit for the IR transmitter. The use of 880nm IR diodes is recommended, in the B&O service manuals you will find references to the receiver circuit and 880nm wavelength is described there. Details see --> https://github.com/aanban/esp32_beo4/tree/main/examples/esp32_beo4_tx/readme.txt
+An example of the send function can be found under examples/esp32_beo4_tx. There is also a working circuit for the IR transmitter. The use of 880nm IR diodes is recommended, in the B&O service manuals you will find references to the receiver circuit and 880nm wavelength is described there. Details see --> [esp32_beo4_tx](https://github.com/aanban/esp32_beo4/tree/main/examples/esp32_beo4_tx/readme.txt)
 
 
 
 
 ## 1.3 Home Assistant MQTT auto discovery example
 Using the MQTT auto discovery feature for Home Assistant integration
-Details see --> https://github.com/aanban/esp32_beo4/tree/main/examples/esp32_beo4_HA/readme.md
+Details see --> [esp32_beo4_HA](https://github.com/aanban/esp32_beo4/tree/main/examples/esp32_beo4_HA/readme.md)
 
 ![06_noise_pulse](examples/esp32_beo4_HA/doc/HA_esp32beo4_device.png)
 
