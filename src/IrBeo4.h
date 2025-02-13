@@ -92,7 +92,7 @@ constexpr uint8_t BEO_CMD_STAND        = 0xf7;
 
 extern const char* beo_src_tbl(uint32_t beo_code);
 extern const char* beo_cmd_tbl(uint32_t beo_code);
-extern uint8_t isRepeatable(uint32_t beo_code);
+extern const uint8_t isRepeatable(uint32_t beo_code);
 
 // ----------------------------------------------------------------------------
 // external call back functions

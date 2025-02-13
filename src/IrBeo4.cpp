@@ -7,7 +7,7 @@
 // checks if a given beoCode inlcudes a beoCommand that is repeatable 
 // @param beoCode code to be checked
 // @return 0=standard 1=repeatable 
-uint8_t isRepeatable(uint32_t beo_code){
+const uint8_t isRepeatable(uint32_t beo_code){
   uint32_t beo_cmd = beo_code & 0xff; 
   switch(beo_cmd){ 
     case BEO_CMD_UP:
