@@ -1,6 +1,5 @@
 #include <Arduino.h>
 #include "IrBeo4.h"
-#include "IrBeo4Info.h"
 
 // Beo4 stuff
 constexpr uint8_t IR_TX_PIN = 32;      // IR transmit pin 

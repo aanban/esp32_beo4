@@ -1,6 +1,5 @@
 #include <Arduino.h>
 #include "IrBeo4.h"
-#include "IrBeo4Info.h"
 
 constexpr int8_t con_IR_RX_PIN = 34;  // IR receive pin
 IrBeo4 beo4(con_IR_RX_PIN);           // instance of beo4 decoder

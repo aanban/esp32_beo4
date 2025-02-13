@@ -2,7 +2,7 @@
 #include <ArduinoJson.h>
 #include "WiFi.h"
 #include <IrBeo4.h>
-#include <IrBeo4Info.h>
+
 
 uint32_t ts_m=0;                 // timestamp mqtt loop
 uint32_t ts_l=0;                 // timestamp status loop
