@@ -20,7 +20,7 @@ TaskHandle_t beo4_task_h;
 
 // MQTT stuff
 #include "PubSubClient.h"         // from https://github.com/knolleary/pubsubclient.git
-constexpr const char* gVersion    = "1.2.0";                // application version HA
+constexpr const char* gVersion    = "1.4.0";                // application version HA
 constexpr const char* gModel      = "ESP32 Beo4 gateway";   // device information HA
 constexpr const char* gDevice     = "esp32beo4";            // device name HA
 constexpr const char* topic_diag  = "esp32beo4/diag";       // diagnostics section
