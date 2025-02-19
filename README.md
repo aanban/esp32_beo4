@@ -79,6 +79,7 @@ void IRAM_ATTR ir_pulse_isr(void) {
     tsPre=tsNew;
   }
 }
+
 ```
 The TSOP7000 output is `low-activ`, therefor `mode=FALLING` must be set in the `attachInterrupt()` function.
 
@@ -89,6 +90,37 @@ The TSOP7000 output is `low-activ`, therefor `mode=FALLING` must be set in the `
     attachInterrupt(m_rx_pin, ir_pulse_isr, FALLING);
   } 
 ```
+
+### 2.1.2. Software solution RMT approach
+It turned out that the interrupt-based approach had disadvantages with fast successive repeated codes. Especially when WLAN was involved. The interrupt service routine was always interrupted by the higher-priority WLAN routines, so that BeoCodes were lost. (e.g. with the repeated codes such as (UP,DOWN,LEFT RIGHT). 
+
+The RMT approach uses the ESP32 hardware-internal [RMT module](https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/peripherals/rmt.html) , which does not trigger on edges but samples the TSOP output signal, e.g. at 1MHz, and then records a data set of low and high pulse length in µs, and doing some filtering for noise reduction. A larger gap serves as an end-of-code identifier. The Beo4 decoder is then applied to this raw data. Although repeated codes following in quick succession are complete recorded first, no more codes are lost. The key routine `parse_raw_data()` filters small records (`n_sym < 10`) and computes the `pulseWidth=carrierPulse+lowPulseWidth` and filters invalid length as well before feeding the beo4 decoder finite state machine. This removes the hiccups and dummy pulses within the low pulse.  
+
+```cpp
+// filtes and parses raw-data using the beo_decode_fsm() to decode pulseCode 
+void IrBeo4::parse_raw_data(rmt_symbol_word_t *sym, size_t n_sym) {
+  ESP_LOGI(IR_BEO4,"n_sym=%d ",  n_sym);
+  if(n_sym > 10) {  // suppress short dummy codes (TSO7000 hiccups )
+    ESP_LOGI(IR_BEO4,"\nstart-------------------");
+    m_rxFSM=rxSt::Idle;
+    for(size_t ic=0; ic<n_sym; ic++) {
+      uint16_t pulseWidth = sym[ic].duration0 + sym[ic].duration1;
+      if(pulseWidth>1500) {                              // suppress invalid pulses
+        uint16_t pulseCode = beo_pulse_code(pulseWidth); // round to pulse code [1..5]
+        beo_decode_fsm(pulseCode, n_sym);                // call beo4 decoder 
+        ESP_LOGI(IR_BEO4,"\n%5d %5d %5d %5d  ",sym[ic].duration0,sym[ic].duration1,pulseWidth,pulseCode);
+      }
+    }
+    ESP_LOGI(IR_BEO4,"\nend---------------------\n");
+  }
+}
+
+```
+The transmitter routine is now also based on the RMT approach. Since the generation is now based on hardware, the CPU is relieved and the workaround with the mutex as in the previous approach is no longer required.  The output signal is only very precise. There is no more jitter in the low pulses due to interruptions from other processes on the CPU. 
+
+> [!NOTE] 
+>*The new RMT approach will be used from release 1.4.0.*
+
 
 
 # 3. Decoding B&O Beo4 remote control codes
