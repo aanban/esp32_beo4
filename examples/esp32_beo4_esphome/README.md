@@ -1,12 +1,13 @@
 The beo4 encoder/decoder was integrated into the ESPHome `remote_base` component. See details --> pull request [#8307](https://github.com/esphome/esphome/pull/8307)
 
 ## 1. Example of IR receiver
-
 - set `external_component` to get the beo4 decoder within `remote_base` component
 - set `binary_sensor` to get an sensor of an explicte beo4 IR remote control button, e.g. audio standby
 - or set `on_beo4` to use a lambda code to handle received IR buttons in a generic way. Here lookup tables are used to get human readable translations of the received hex-codes (beo_source, beo_command). The source file beo4.h is included via `includes:` under `esphome:`
 
-### 1.1. YAML snippet for receiver
+### 1.1. YAML beo4 receiver 
+
+[esp32-07-beo4.yaml](esphome/config/esp32-07-beo4.yaml)
 
 ```yaml
 
@@ -64,10 +65,12 @@ The device shows the binary sensor "audio standby" and the generic sensors with 
 
 ## 2. Example of IR transmitter
 - set `external_component` to get the beo4 decoder within `remote_base` component
-
 - set `actions:` in `api:` section and additional lambda code to provide a generic interface for sending beo4 codes
 
-### 1.2. YAML snippet for receiver
+### 1.2. YAML beo4 transmitter
+
+[esp32-02-beo4-tx.yaml](esphome/config/esp32-02-beo4-tx.yaml)
+
 
 ```yaml
 external_components:
