@@ -1,14 +1,11 @@
 The beo4 encoder/decoder was integrated into the ESPHome `remote_base` component. See details --> pull request [#8307](https://github.com/esphome/esphome/pull/8307)
 
-## 1. Example of IR receiver
+## 1. beo4 receiver  [esp32-07-beo4.yaml](esphome/config/esp32-07-beo4.yaml)
 - set `external_component` to get the beo4 decoder within `remote_base` component
 - set `binary_sensor` to get an sensor of an explicte beo4 IR remote control button, e.g. audio standby
 - or set `on_beo4` to use a lambda code to handle received IR buttons in a generic way. Here lookup tables are used to get human readable translations of the received hex-codes (beo_source, beo_command). The source file beo4.h is included via `includes:` under `esphome:`
 
-### 1.1. YAML beo4 receiver 
-
-[esp32-07-beo4.yaml](esphome/config/esp32-07-beo4.yaml)
-
+### 1.1. beo4 receiver YAML details
 ```yaml
 
 external_components:
@@ -57,21 +54,17 @@ remote_receiver:
         ESP_LOGI("main","%3d %s %s %d", beo_cnt, str_beo_src, str_beo_cmd, beo_rpt);
 
 ```
-### 1.2. ESPHome device sensors
+### 1.2. beo4 receiver sensors
 The device shows the binary sensor "audio standby" and the generic sensors with the human readable sensors beoCommand and beoSource
 
 ![rx-sensors](doc/beo4_rx.png)
 
 
-## 2. Example of IR transmitter
+## 2. beo4 transmitter [esp32-02-beo4-tx.yaml](esphome/config/esp32-02-beo4-tx.yaml)
 - set `external_component` to get the beo4 decoder within `remote_base` component
 - set `actions:` in `api:` section and additional lambda code to provide a generic interface for sending beo4 codes
 
-### 1.2. YAML beo4 transmitter
-
-[esp32-02-beo4-tx.yaml](esphome/config/esp32-02-beo4-tx.yaml)
-
-
+### 1.2. beo4 transmitter YAML details
 ```yaml
 external_components:
   - source: github://pr#8307
@@ -116,9 +109,9 @@ tap_action:
 ```
 
 ## 3. Tests with pyscript
-The pyscript `config/pyscript/beo4.py` has a lookup table inlucded so that beo4 codes can be send in human readable form. 
+The script `config/pyscript/beo4.py` supports a lookup table so that beo4 codes can be send in human readable form. 
 
-### 3.1. pyscript beo4.py
+### 3.1. pyscript [beo4.py](pyscript/beo4.py)
 ```python
 # beo4 source table
 stbl = {
