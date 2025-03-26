@@ -1,0 +1,97 @@
+substitutions:
+  device_name: "esp32-07-beo4"
+  friendly_name: "esp32-07-beo4"
+  ip: 192.168.178.77
+  
+packages:
+  common: !include lib/common.yaml
+  esp32_base: !include lib/esp32_base.yaml
+  esp32_temp: !include lib/esp32_temp.yaml
+  esp32_debug: !include lib/esp32_debug.yaml
+
+external_components:
+  - source: github://pr#8307
+    components: [ remote_base ]
+
+esphome:
+  name: ${device_name}
+  friendly_name: ${device_name}
+
+  includes: 
+    - includes/beo4.h
+
+esp32:
+  board: nodemcu-32s
+
+logger:
+  # turn off logger uart
+  level: DEBUG
+  baud_rate: 115200
+
+globals:
+  - id: id_beoCnt
+    type: int
+    initial_value: "0"
+
+text_sensor:
+  - platform: template
+    name: "beoSource"
+    id: "id_beoSource"
+    icon: mdi:radio
+
+  - platform: template
+    name: "beoCommand"
+    id: "id_beoCommand"
+    icon: mdi:numeric
+
+sensor:
+  - platform: template
+    name: "numBeoCode"
+    id: "id_numBeoCode"
+    accuracy_decimals: 0
+    icon: mdi:numeric
+
+  - platform: template
+    name: "beoRepeats"
+    id: "id_beoRepeats"
+    accuracy_decimals: 0
+    icon: mdi:numeric
+
+  - platform: template
+    name: "beoCode"
+    id: "id_beoCode"
+    accuracy_decimals: 0
+    icon: mdi:numeric
+
+binary_sensor:
+  - platform: remote_receiver
+    name: "beo4 audio standby"
+    filters:
+      - delayed_off: 500ms
+    beo4: 
+      source: 0x01
+      command: 0x0c
+
+remote_receiver:
+- pin:
+    number: GPIO34
+    inverted: true  # tsop7000 output is active-low
+  idle: 30ms        # twice the longest data-pulse
+  dump: beo4        # dump output
+  on_beo4:
+    then:
+      - lambda: |-
+          auto beo_rpt=x.repeats;
+          auto beo_src=x.source;
+          auto beo_cmd=x.command;
+          int32_t beo_code = ((int32_t)(beo_src)<<8) + (int32_t)beo_cmd;
+          const char* str_beo_src=beo_src_tbl(beo_src);
+          const char* str_beo_cmd=beo_cmd_tbl(beo_cmd);
+          id(id_beoCnt) +=1; 
+          auto beo_cnt=id(id_beoCnt);
+          id(id_beoCode).publish_state(beo_code);
+          id(id_beoSource).publish_state(str_beo_src); 
+          id(id_beoCommand).publish_state(str_beo_cmd); 
+          id(id_beoRepeats).publish_state(beo_rpt);
+          id(id_numBeoCode).publish_state(beo_cnt);
+          ESP_LOGI("main","%3d %s %s %d", beo_cnt, str_beo_src, str_beo_cmd, beo_rpt);

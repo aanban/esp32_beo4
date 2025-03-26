@@ -1,0 +1,10 @@
+sensor:
+  - platform: internal_temperature
+    name: "ESP32 Internal Temp"
+    id: esp32_internal_temp
+    device_class: temperature
+    state_class: measurement
+    unit_of_measurement: °C
+    accuracy_decimals: 1
+    update_interval: 60s
+

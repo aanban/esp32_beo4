@@ -1,0 +1,74 @@
+substitutions:
+  device_name: "esp32-02-beo4-tx"
+  friendly_name: "esp32-02-beo4-tx"
+  ip: 192.168.178.72
+  
+packages:
+  common: !include lib/common.yaml
+  esp32_debug: !include lib/esp32_debug.yaml
+  esp32_temp: !include lib/esp32_temp.yaml
+
+external_components:
+  - source: github://pr#8307
+    components: [ remote_base ]
+
+esphome:
+  name: ${device_name}
+  friendly_name: ${device_name}
+  comment: IR Sender test
+
+esp32:
+  board: nodemcu-32s
+  framework:
+    type: esp-idf
+
+
+logger:
+  level: VERBOSE
+  baud_rate: 115200
+
+api: 
+  actions:
+    - action: send_beo_code
+      variables: 
+        beo_src: int
+        beo_cmd: int
+        beo_rpt: int
+      then: 
+      - lambda: |- 
+          uint8_t beo_source=(uint8_t) beo_src;
+          uint8_t beo_command=(uint8_t) beo_cmd;
+          
+          ESP_LOGI("main","repeat=%d",beo_rpt);
+          for(int32_t ic=0; ic < beo_rpt ; ic++) {
+            auto call = id(beo4_tx).transmit();
+            esphome::remote_base::Beo4Data beo4_data = { beo_source, beo_command };
+            esphome::remote_base::Beo4Protocol().encode(call.get_data(), beo4_data);
+            call.perform();
+            id(id_beoCnt) += 1; 
+            auto beo_cnt=id(id_beoCnt);
+            id(id_numBeoCode).publish_state(beo_cnt);
+          }
+
+globals:
+  - id: id_beoCnt
+    type: int
+    initial_value: "0"
+
+sensor:
+  - platform: template
+    name: "numBeoCode"
+    id: "id_numBeoCode"
+    accuracy_decimals: 0
+    icon: mdi:numeric
+
+remote_transmitter:
+- id: beo4_tx
+  pin:
+    number: GPIO33
+    inverted: false             # force carrier off in idle state
+  carrier_duty_percent: 50%
+  clock_resolution : 1000000    # sample signal every 1us
+  use_dma: false                # esp32 does not support dma
+  eot_level : false             # force signal low in idle state --> avoid damaging the IR leds
+

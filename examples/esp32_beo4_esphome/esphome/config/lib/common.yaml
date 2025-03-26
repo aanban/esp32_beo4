@@ -1,0 +1,86 @@
+# settings for esp32 based boards
+# wifi settings, onchip temperature, memory, speed, ha-time
+
+wifi:
+  fast_connect: True
+  power_save_mode: none
+
+  ssid: !secret wifi_ssid
+  password: !secret wifi_pass
+
+  manual_ip:
+    static_ip: ${ip}
+    gateway: !secret gateway
+    subnet: !secret subnet
+
+  ap:
+    ssid: ${device_name}
+    password: !secret esp_pass
+
+  
+
+# esphome API settings
+api:
+  encryption:
+    key: !secret esp_apikey
+
+# over-the-air-update settings
+ota:
+  - platform: esphome
+    password: !secret esp_pass
+
+# fallback 
+captive_portal:
+
+web_server:
+  port: 80
+
+time:
+  - platform: homeassistant
+    id: current_time
+    on_time_sync:
+      - component.update: uptime_timestamp
+
+sensor:
+  - platform: uptime
+    id: uptime_sec
+    
+    # Device uptime 
+  - platform: template
+    id: uptime_timestamp
+    name: "Uptime"
+    device_class: timestamp
+    entity_category: diagnostic
+    accuracy_decimals: 0
+    update_interval: never
+    lambda: |-
+      static float timestamp = (
+        id(current_time).utcnow().timestamp - id(uptime_sec).state
+      );
+      return timestamp;
+
+    #Device wifi signal
+  - platform: wifi_signal
+    name: Wifi RSSI
+    id: id_wifi_rssi
+    device_class: signal_strength
+    state_class: measurement 
+    entity_category: diagnostic
+    update_interval: 60s
+
+binary_sensor: 
+  - platform: status
+    id: id_status
+    name: "Status"
+
+text_sensor:
+  - platform: wifi_info
+    ip_address:
+      id: ip_address
+      name: IP Address
+      icon: mdi:ip-network-outline
+
+button:
+  - platform: restart
+    icon: mdi:power-cycle
+    name: "ESP Reboot"
