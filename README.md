@@ -38,7 +38,7 @@ Details see --> [esp32_beo4_HA](examples/esp32_beo4_HA/readme.md)
 
 
 ## 1.4 Home Assistant ESPHome example
-Recently the beo4 encoder/decoder was integrated into the ESPHome `remote_base` component.  Details see --> [esp32_beo4_esphome](examples/esp32_beo4_esphome/readme.md)
+Recently the beo4 encoder/decoder was integrated into the ESPHome `remote_base` component.  Details see --> [esp32_beo4_esphome](examples/esp32_beo4_esphome)
 
 
 # 2. TSOP7000 Issues
