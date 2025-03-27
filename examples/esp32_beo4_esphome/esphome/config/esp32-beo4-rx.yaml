@@ -1,13 +1,12 @@
 substitutions:
-  device_name: "esp32-07-beo4"
-  friendly_name: "esp32-07-beo4"
+  device_name:   "esp32-beo4-rx"
+  friendly_name: "esp32-beo4-rx"
   ip: 192.168.178.77
   
 packages:
-  common: !include lib/common.yaml
-  esp32_base: !include lib/esp32_base.yaml
-  esp32_temp: !include lib/esp32_temp.yaml
-  esp32_debug: !include lib/esp32_debug.yaml
+  esp32_common: !include common/esp32_common.yaml
+  esp32_temp:   !include common/esp32_temp.yaml
+  esp32_debug:  !include common/esp32_debug.yaml
 
 external_components:
   - source: github://pr#8307
@@ -16,15 +15,16 @@ external_components:
 esphome:
   name: ${device_name}
   friendly_name: ${device_name}
-
+  comment: B&O beo4 receiver
   includes: 
     - includes/beo4.h
 
 esp32:
   board: nodemcu-32s
+  framework:
+    type: esp-idf
 
 logger:
-  # turn off logger uart
   level: DEBUG
   baud_rate: 115200
 

@@ -1,6 +1,6 @@
 The beo4 encoder/decoder was integrated into the ESPHome `remote_base` component. See details --> pull request [#8307](https://github.com/esphome/esphome/pull/8307)
 
-## 1. beo4 receiver  [esp32-07-beo4.yaml](esphome/config/esp32-07-beo4.yaml)
+## 1. beo4 receiver  [esp32-beo4-rx.yaml](esphome/config/esp32-beo4-rx.yaml)
 - set `external_component` to get the beo4 decoder within `remote_base` component
 - set `binary_sensor` to get an sensor of an explicte beo4 IR remote control button, e.g. audio standby
 - or set `on_beo4` to use a lambda code to handle received IR buttons in a generic way. Here lookup tables are used to get human readable translations of the received hex-codes (beo_source, beo_command). The source file beo4.h is included via `includes:` under `esphome:`
@@ -60,7 +60,7 @@ The device shows the binary sensor "audio standby" and the generic sensors with 
 ![rx-sensors](doc/beo4_rx.png)
 
 
-## 2. beo4 transmitter [esp32-02-beo4-tx.yaml](esphome/config/esp32-02-beo4-tx.yaml)
+## 2. beo4 transmitter [esp32-beo4-tx.yaml](esphome/config/esp32-beo4-tx.yaml)
 - set `external_component` to get the beo4 decoder within `remote_base` component
 - set `actions:` in `api:` section and additional lambda code to provide a generic interface for sending beo4 codes
 
@@ -101,7 +101,7 @@ The generic interface can be used to create a button on a home-assistant dashboa
 ```yaml
 tap_action:
   action: perform-action
-  perform_action: esphome.esp32_02_beo4_tx_send_beo_code
+  perform_action: esphome.esp32_beo4_tx_send_beo_code
   data:
     beo_rpt: 1
     beo_src: 1
@@ -136,14 +136,13 @@ ctbl = {
     'STAND'         :'f7'
 }
 
-
 # lookup beoSrc and beoCmd and call esphome action 
 @service 
 def beo4Send(beo_src, beo_cmd, beo_rpt = 1):
     source = int(stbl[beo_src],16)
     command = int(ctbl[beo_cmd],16)
     repeat = int(beo_rpt)
-    esphome.esp32_02_beo4_tx_send_beo_code(beo_src = source , beo_cmd = command, beo_rpt = repeat)
+    esphome.esp32_beo4_tx_send_beo_code(beo_src = source , beo_cmd = command, beo_rpt = repeat)
 
 # send command and compare with received
 @service 
@@ -152,11 +151,11 @@ def beo4SendInfo(beo_src="AUDIO", beo_cmd="GO"):
     command = int(ctbl[beo_cmd],16)
     beo_code = f'0x{stbl[beo_src]}{ctbl[beo_cmd]}'
     beoCode = int((source * 256) + command)
-    esphome.esp32_02_beo4_tx_send_beo_code(beo_src = source , beo_cmd = command, beo_rpt = 1)
+    esphome.esp32_beo4_tx_send_beo_code(beo_src = source , beo_cmd = command, beo_rpt = 1)
     task.sleep(1)
-    rxBeoSrc = sensor.esp32_07_beo4_beosource.upper()
-    rxBeoCmd = sensor.esp32_07_beo4_beocommand.upper()
-    rxBeoCode= int(sensor.esp32_07_beo4_beocode)
+    rxBeoSrc = sensor.esp32_beo4_rx_beosource.upper()
+    rxBeoCmd = sensor.esp32_beo4_rx_beocommand.upper()
+    rxBeoCode= int(sensor.esp32_beo4_rx_beocode)
     res = 'OK' if rxBeoCode==beoCode else 'FAIL'
     log.info(f'{beo_code:<7} {beo_src:<5} {beo_cmd:<20} {rxBeoSrc:<5} {rxBeoCmd:<20} {res}')
 

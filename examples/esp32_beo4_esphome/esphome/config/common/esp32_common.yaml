@@ -1,6 +1,6 @@
-# settings for esp32 based boards
-# wifi settings, onchip temperature, memory, speed, ha-time
+# common settings for esp32 based boards
 
+# wifi settings
 wifi:
   fast_connect: True
   power_save_mode: none
@@ -16,8 +16,6 @@ wifi:
   ap:
     ssid: ${device_name}
     password: !secret esp_pass
-
-  
 
 # esphome API settings
 api:

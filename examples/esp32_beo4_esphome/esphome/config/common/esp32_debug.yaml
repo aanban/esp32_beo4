@@ -1,6 +1,4 @@
-#
-# add debug info for device-info and reset-reason
-#
+# esp32 debug infos 
 debug:
   update_interval: 60s
 

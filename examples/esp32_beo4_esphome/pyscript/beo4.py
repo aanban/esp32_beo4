@@ -90,7 +90,7 @@ def beo4Send(beo_src, beo_cmd, beo_rpt = 1):
     source = int(stbl[beo_src],16)
     command = int(ctbl[beo_cmd],16)
     repeat = int(beo_rpt)
-    esphome.esp32_02_beo4_tx_send_beo_code(beo_src = source , beo_cmd = command, beo_rpt = repeat)
+    esphome.esp32_beo4_tx_send_beo_code(beo_src = source , beo_cmd = command, beo_rpt = repeat)
     
 # send command and compare with received
 @service 
@@ -99,11 +99,11 @@ def beo4SendInfo(beo_src="AUDIO", beo_cmd="GO"):
     command = int(ctbl[beo_cmd],16)
     beo_code = f'0x{stbl[beo_src]}{ctbl[beo_cmd]}'
     beoCode = int((source * 256) + command)
-    esphome.esp32_02_beo4_tx_send_beo_code(beo_src = source , beo_cmd = command, beo_rpt = 1)
+    esphome.esp32_beo4_tx_send_beo_code(beo_src = source , beo_cmd = command, beo_rpt = 1)
     task.sleep(1)
-    rxBeoSrc = sensor.esp32_07_beo4_beosource.upper()
-    rxBeoCmd = sensor.esp32_07_beo4_beocommand.upper()
-    rxBeoCode= int(sensor.esp32_07_beo4_beocode)
+    rxBeoSrc = sensor.esp32_beo4_rx_beosource.upper()
+    rxBeoCmd = sensor.esp32_beo4_rx_beocommand.upper()
+    rxBeoCode= int(sensor.esp32_beo4_rx_beocode)
     res = 'OK' if rxBeoCode==beoCode else 'FAIL'
     log.info(f'{beo_code:<7} {beo_src:<5} {beo_cmd:<20} {rxBeoSrc:<5} {rxBeoCmd:<20} {res}')
 

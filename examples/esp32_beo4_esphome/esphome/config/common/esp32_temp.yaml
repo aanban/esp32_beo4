@@ -1,3 +1,4 @@
+# esp32 onboard temperature
 sensor:
   - platform: internal_temperature
     name: "ESP32 Internal Temp"

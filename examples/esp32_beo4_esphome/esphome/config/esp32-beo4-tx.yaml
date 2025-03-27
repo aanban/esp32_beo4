@@ -1,12 +1,12 @@
 substitutions:
-  device_name: "esp32-02-beo4-tx"
-  friendly_name: "esp32-02-beo4-tx"
+  device_name: "esp32-beo4-tx"
+  friendly_name: "esp32-beo4-tx"
   ip: 192.168.178.72
   
 packages:
-  common: !include lib/common.yaml
-  esp32_debug: !include lib/esp32_debug.yaml
-  esp32_temp: !include lib/esp32_temp.yaml
+  esp32_common: !include common/esp32_common.yaml
+  esp32_debug:  !include common/esp32_debug.yaml
+  esp32_temp:   !include common/esp32_temp.yaml
 
 external_components:
   - source: github://pr#8307
@@ -15,7 +15,7 @@ external_components:
 esphome:
   name: ${device_name}
   friendly_name: ${device_name}
-  comment: IR Sender test
+  comment: B&O beo4 transmitter
 
 esp32:
   board: nodemcu-32s
@@ -39,7 +39,7 @@ api:
           uint8_t beo_source=(uint8_t) beo_src;
           uint8_t beo_command=(uint8_t) beo_cmd;
           
-          ESP_LOGI("main","repeat=%d",beo_rpt);
+          ESP_LOGI("main","beo_src:0x%02x beo_cmd:0x%02x beo_rpt:%d",beo_source, beo_command,beo_rpt);
           for(int32_t ic=0; ic < beo_rpt ; ic++) {
             auto call = id(beo4_tx).transmit();
             esphome::remote_base::Beo4Data beo4_data = { beo_source, beo_command };
@@ -71,4 +71,3 @@ remote_transmitter:
   clock_resolution : 1000000    # sample signal every 1us
   use_dma: false                # esp32 does not support dma
   eot_level : false             # force signal low in idle state --> avoid damaging the IR leds
-
