@@ -20,13 +20,15 @@ framework = arduino
 ```
 
 ## 1.1 Example with receive task (examples/esp32_beo4_rx)
-In previous releases there was the call back function `beo_code_cb()`, but it turned out that it is suitable to just print the codes, but anything else will generate to disturbances of the receiver task ending in unreadable codes. Therefore the critical call back funtion `beo_code_cb()` was removed. The queue based aproach is the better solution. Details see --> [esp32_beo4_rx](examples/esp32_beo4_rx)
+In previous releases there was the call back function `beo_code_cb()`, but it turned out that it is suitable to just print the codes, but anything else will generate to disturbances of the receiver task ending in unreadable codes. Therefore the critical call back funtion `beo_code_cb()` was removed. The queue based aproach is the better solution. 
+Details see --> [esp32_beo4_rx](examples/esp32_beo4_rx)
 
 
 
 
 ## 1.2 Example with transmit task (examples/esp32_beo4_tx)
-An example of the transmit function can be found under examples/esp32_beo4_tx. There is also a working circuit for the IR transmitter. The use of 880nm IR diodes is recommended, in the B&O service manuals you will find references to receiver circuits operating at 880nm wavelength. Details see --> [esp32_beo4_tx](examples/esp32_beo4_tx)
+An example of the transmit function can be found under examples/esp32_beo4_tx. There is also a working circuit for the IR transmitter. The use of 880nm IR diodes is recommended, in the B&O service manuals you will find references to receiver circuits operating at 880nm wavelength. 
+Details see --> [esp32_beo4_tx](examples/esp32_beo4_tx)
 
 
 
@@ -38,7 +40,8 @@ Details see --> [esp32_beo4_HA](examples/esp32_beo4_HA/readme.md)
 
 
 ## 1.4 Home Assistant ESPHome example
-Recently the beo4 encoder/decoder was integrated into the ESPHome `remote_base` component.  Details see --> [esp32_beo4_esphome](examples/esp32_beo4_esphome)
+Recently the beo4 encoder/decoder was integrated into the ESPHome `remote_base` component.  
+Details see --> [esp32_beo4_esphome](examples/esp32_beo4_esphome)
 
 
 # 2. TSOP7000 Issues
