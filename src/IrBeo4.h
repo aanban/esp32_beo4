@@ -129,6 +129,7 @@ constexpr TickType_t WAIT_250ms = (250/portTICK_PERIOD_MS);
 // ----------------------------------------------------------------------------
 class IrBeo4 {
   private:
+    bool       last_cmd_was_repeat_or_repeatable = false;   // swo add track if last command was repeatable
     int8_t     m_rx_pin  = -1;               ///< IR receive pin
     int8_t     m_tx_pin  = -1;               ///< IR transmit pin
     int64_t    m_tsFrm   = 0;                ///< timestamp frame start

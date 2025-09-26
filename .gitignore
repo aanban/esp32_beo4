@@ -1,0 +1,33 @@
+# PlatformIO files
+.pio
+.pioenvs
+.piolibdeps
+.clang_complete
+.gcc-flags.json
+.pio_cache
+
+# VS Code IntelliSense files
+.vscode/c_cpp_properties.json
+.vscode/launch.json
+.vscode/ipch
+.vscode/.browse.c_cpp.db*
+compile_commands.json
+
+# Build artifacts
+*.o
+*.a
+*.elf
+*.bin
+*.map
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Temporary files
+*~
+*.tmp
+*.swp

@@ -1,0 +1,14 @@
+{
+    "files.exclude": {
+        "**/.pio": true,
+        "**/compile_commands.json": true,
+        "**/*.log": true,
+        "**/.vscode/c_cpp_properties.json": true,
+        "**/.vscode/ipch": true,
+        "**/.vscode/.browse.c_cpp.db*": true
+    },
+    "files.watcherExclude": {
+        "**/.pio/**": true,
+        "**/compile_commands.json": true
+    }
+}

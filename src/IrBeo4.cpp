@@ -22,7 +22,26 @@ const uint8_t isRepeatable(uint32_t beo_code){
   }
   return 0; 
 }
-
+// checks if the beoCommand of a given beo_codeis repeatkey
+// @param beo_code to be checked
+// @return 0=single code 1=repeat code
+const uint8_t isRepeatkey(uint32_t beo_code){
+  uint32_t beo_cmd = beo_code & 0xff; 
+  switch(beo_cmd){ 
+    case BEO_CMD_VOL_DOWN:
+    case BEO_CMD_VOL_UP:
+    case BEO_CMD_LEFT_REPEAT:
+    case BEO_CMD_RIGHT_REPEAT:
+    case BEO_CMD_UP_REPEAT:
+    case BEO_CMD_DOWN_REPEAT:
+    case BEO_CMD_GO_REPEAT:
+    case BEO_CMD_GREEN_REPEAT:
+    case BEO_CMD_YELLOW_REPEAT:
+    case BEO_CMD_BLUE_REPEAT:
+    case BEO_CMD_RED_REPEAT:   return 1; 
+  }
+  return 0; 
+}
 // extracts BeoSource from a given beo_code as string
 // @param beo_code=Beo4 code
 // return BeoSource or "invalid_src" for unknown beoCodes
@@ -262,6 +281,13 @@ void beo4_rx_task(void *handle) {
         // raw data available, parse and decode
         beo->parse_raw_data(rx_data.received_symbols, rx_data.num_symbols);
         // start next RMT receive cycle
+        // if last command was repeatable, increase timeout to 10s there is no BEOStart
+        if(beo->last_cmd_was_repeat_or_repeatable) {
+          beo->m_rx_receive_cfg.signal_range_max_ns = 10000000;   // 10000µs > 12500 µs
+        }
+        else {
+          beo->m_rx_receive_cfg.signal_range_max_ns = 20000000;   // 20000µs > 15625 µs
+        }
         rmt_receive(beo->m_rx_chan, raw_symbols, sizeof(raw_symbols), &beo->m_rx_receive_cfg);
       }
     }
@@ -433,7 +459,9 @@ void IrBeo4::beo_decode_fsm(uint32_t pulseCode, size_t n_sym) {
       break; 
     }
     case rxSt::Stop: { // validate stop code
-      if(pcStop == pulseCode) { // stop code valid
+      //if(pcStop == pulseCode) { // stop code valid
+      if(pcStop == pulseCode || last_cmd_was_repeat_or_repeatable) { // stop code valid
+   
         uint32_t data = ((uint32_t)n_sym << 16) + (beoCode & 0xffff); 
         uint32_t beoCmd = beoCode & 0xff;
         if(isRepeatable(beoCmd)) {
@@ -443,6 +471,8 @@ void IrBeo4::beo_decode_fsm(uint32_t pulseCode, size_t n_sym) {
           m_beoWait=0; // send out directly
           xQueueSend(m_beo4_rx_queue,&data,0);
         }
+        last_cmd_was_repeat_or_repeatable = isRepeatable(beoCmd)  || isRepeatkey(beoCmd);
+    
       }
       m_rxFSM=rxSt::Idle;
       break; 
@@ -456,9 +486,16 @@ void IrBeo4::parse_raw_data(rmt_symbol_word_t *sym, size_t n_sym) {
   if(n_sym > 10) {  // suppress short dummy codes (TSO7000 hiccups )
     ESP_LOGI(IR_BEO4,"\nstart-------------------");
     m_rxFSM=rxSt::Idle;
+    
+    // Start the FSM for repeatkeys
+    if(last_cmd_was_repeat_or_repeatable ) { // if last command was repeatable, preset FSM with Start Code
+         beo_decode_fsm(pcStart, n_sym); // preset fsm with start-code
+    }
+
     for(size_t ic=0; ic<n_sym; ic++) {
       uint16_t pulseWidth = sym[ic].duration0 + sym[ic].duration1;
-      if(pulseWidth>1500) {                              // suppress invalid pulses
+      //if(pulseWidth>1500) {                              // suppress invalid pulses
+      if(pulseWidth>1500 || last_cmd_was_repeat_or_repeatable) {      // suppress invalid pulses
         uint16_t pulseCode = beo_pulse_code(pulseWidth); // round to pulse code [1..5]
         beo_decode_fsm(pulseCode, n_sym);                // call beo4 decoder 
         ESP_LOGI(IR_BEO4,"\n%5d %5d %5d %5d  ",sym[ic].duration0,sym[ic].duration1,pulseWidth,pulseCode);
