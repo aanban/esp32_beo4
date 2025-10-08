@@ -354,7 +354,7 @@ int IrBeo4::rmt_rx_setup(void) {
   m_rx_cfg.gpio_num          = (gpio_num_t) m_rx_pin;
   m_rx_cfg.clk_src           = RMT_CLK_SRC_DEFAULT; 
   m_rx_cfg.resolution_hz     = 1000000u;             // 1MHz --> 1µs resolution
-  m_rx_cfg.mem_block_symbols = 512;
+  m_rx_cfg.mem_block_symbols = 128;                  // ESP32-S3 has reduced RMT Memory
   m_rx_cfg.intr_priority     = 3; 
   m_rx_cfg.flags.invert_in   = true;
   m_rx_cfg.flags.with_dma    = false; 
