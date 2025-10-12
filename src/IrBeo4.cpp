@@ -4,7 +4,8 @@
 // Helper c-functions 
 // ----------------------------------------------------------------------------
 
-// checks if the beoCommand of a given beo_codeis repeatable 
+// checks if the beoCommand of a given beo_code is repeatable, those are the arrow 
+// buttons surrounding the GO Button of the beo4 remote control
 // @param beo_code to be checked
 // @return 0=single code 1=repeatable code
 const uint8_t isRepeatable(uint32_t beo_code){
@@ -41,7 +42,7 @@ const char* beo_src_tbl(uint32_t beo_code) {
 
 // extracts BeoCommand from a given beo_code as string
 // @param beo_code=Beo4 code 
-// return BeoCommand or "invalid_cmd" for unknwon beoCodes
+// return BeoCommand or "invalid_cmd" for unknown beoCodes
 const char* beo_cmd_tbl(uint32_t beo_code) {
   uint8_t command=(uint8_t) (beo_code & 255u);
   switch(command) {
@@ -164,7 +165,7 @@ static const rmt_symbol_word_t BeoEOT   = { .duration0=pwCarr, .level0=1, .durat
 
 
 // ----------------------------------------------------------------------------
-// callback c-funtions
+// callback c-functions
 // ----------------------------------------------------------------------------
 
 // rmt transmit callback function. Encodes rmt_symbol_word symbols from a given beoCode. 
@@ -177,7 +178,7 @@ static const rmt_symbol_word_t BeoEOT   = { .duration0=pwCarr, .level0=1, .durat
 // @param sym_wr (not used here) symbols written
 // @param sym_free number of free symbols in symbol-buffer of rmt-driver 
 // @param sym pointer to first free symbol in symbol-buffer of rmt-driver
-// @param done is set to true, afte the complete frame is written to the symbol-buffer
+// @param done is set to true, after the complete frame is written to the symbol-buffer
 // @param arg (not uses here)
 static size_t beo4_encode_cb(const void *data, size_t n_data, size_t sym_wr, size_t sym_free, 
                              rmt_symbol_word_t *sym, bool *done, void *arg) {
@@ -238,13 +239,13 @@ void beo4_quarantine_task(void *handle){
     for(;;){
       if(pdTRUE==xQueueReceive(beo->m_beo4_quarantine_queue,&repeatableBeoCode,WAIT_infi)) {
         // repeatable BeoCode has arrived, wait for trigger-event or time out
-        uxBits=xEventGroupWaitBits(g_eg_handle, evRptCode, pdTRUE, pdTRUE, WAIT_250ms);
+        uxBits=xEventGroupWaitBits(g_eg_handle, evRptCode, pdTRUE, pdTRUE, WAIT_300ms);
         if(evRptCode==(uxBits & evRptCode)) { // successor BeoCode detected 
           beo->m_beoWait=0;                   // reset flag, BeoCode is removed
           ESP_LOGI(IR_BEO4,".\n");
         } else {  // timeout detected, delayed code can be send
           xQueueSend(beo->m_beo4_rx_queue,&repeatableBeoCode,0);
-          beo->m_beoWait=0;                   // reset flag, BeoCode is send to standard qeuue
+          beo->m_beoWait=0;                   // reset flag, BeoCode is send to standard queue
           ESP_LOGI(IR_BEO4,"_\n");
         }
       }
@@ -277,12 +278,12 @@ void beo4_tx_task(void *param){
     beo4->rmt_tx_setup();            // init RMT driver
     for(;;){
       if(pdTRUE==xQueueReceive(beo4->m_beo4_tx_queue,&data,portMAX_DELAY)) { 
-        beo4->LED(HIGH);             // trasnmit starts --> LED ON 
+        beo4->LED(HIGH);             // transmit starts --> LED ON 
         beoCode=(uint16_t)data;
         if(ESP_OK==rmt_transmit(beo4->m_tx_chan, beo4->m_beo_encoder, &beoCode,sizeof(beoCode), &beo4->m_transmit_cfg)) {
           rmt_tx_wait_all_done(beo4->m_tx_chan, portMAX_DELAY);
         }
-        beo4->LED(LOW);              // trasmit finished --> LED OFF 
+        beo4->LED(LOW);              // transmit finished --> LED OFF 
       }
     }
   }
@@ -293,10 +294,10 @@ void beo4_tx_task(void *param){
 // ------------------------------------------------------------------------------------------------
 
 // constructor
-IrBeo4::IrBeo4(int8_t rx_pin,int8_t tx_pin) {
+IrBeo4::IrBeo4(int8_t rx_pin,int8_t tx_pin, int8_t lc_mode) {
   m_rx_pin = rx_pin;
   m_tx_pin = tx_pin;
-  m_rxFSM  = rxSt::Idle;
+  m_lc_mode= lc_mode; 
 }
 
 // destructor
@@ -364,10 +365,11 @@ int IrBeo4::rmt_rx_setup(void) {
   ESP_ERROR_CHECK(rmt_rx_register_event_callbacks(m_rx_chan, &m_rx_event_cbs, m_beo4_rmt_rx_queue));
 
   m_rx_receive_cfg.signal_range_min_ns =     2000;   //    10µs <   200 µs
-  m_rx_receive_cfg.signal_range_max_ns = 20000000;   // 20000µs > 15625 µs
+  m_rx_receive_cfg.signal_range_max_ns = 14000000;   // 14000µs, this time is shorter than the pulse width of the start symbol, 
+                                                     // thus representing the separator for the long repeat frames. 
   m_rx_receive_cfg.flags.en_partial_rx = false; 
 
-  ESP_ERROR_CHECK(rmt_enable(m_rx_chan));            // activate the recieve channel
+  ESP_ERROR_CHECK(rmt_enable(m_rx_chan));            // activate the receive channel
   return ESP_OK;
 }
 
@@ -395,76 +397,68 @@ int IrBeo4::Begin(QueueHandle_t beo4_rx_queue, QueueHandle_t beo4_tx_queue) {
   return ESP_OK;
 }
 
-// fsm that decodes pulseCodes to beoCode
-void IrBeo4::beo_decode_fsm(uint32_t pulseCode, size_t n_sym) {
-  static uint32_t beoCode=0;   // decode beoCode
-  static uint32_t preBit=0;    // previous bit 
-  static size_t   cntBit=0;    // count bits until 17
-  
-  switch(m_rxFSM) {
-    case rxSt::Idle: { // waiting for start-code
-      beoCode=0;
-      cntBit=0;
-      preBit=0;
-      if(pcStart==pulseCode) {
-        m_rxFSM=rxSt::Data;    // next--> collect data
-        if(1==m_beoWait) {     // a code waits in quarantine
-          m_beoWait=0;         // set event for quarantine_task
-          xEventGroupSetBits(g_eg_handle,evRptCode); 
-        }
-      }
-      break;
-    }
-    case rxSt::Data: { // collecting data
-      uint32_t curBit=0; 
-      switch(pulseCode) {
-        case pcZero: { curBit=preBit=0; break; }
-        case pcSame: { curBit=preBit;   break; }
-        case pcOne:  { curBit=preBit=1; break; }
-        default: { 
-          m_rxFSM=rxSt::Idle;
-          return;
-        }
-      }
-      beoCode = (beoCode << 1) + curBit; 
-      if(++cntBit == nBit) {    // collecting data done
-        m_rxFSM=rxSt::Stop;     // next--> validate stop-code
-      }
-      break; 
-    }
-    case rxSt::Stop: { // validate stop code
-      if(pcStop == pulseCode) { // stop code valid
-        uint32_t data = ((uint32_t)n_sym << 16) + (beoCode & 0xffff); 
-        uint32_t beoCmd = beoCode & 0xff;
-        if(isRepeatable(beoCmd)) {
-          m_beoWait=1; // let code wait in quarantine
-          xQueueSend(m_beo4_quarantine_queue,&data,0);
-        } else {
-          m_beoWait=0; // send out directly
-          xQueueSend(m_beo4_rx_queue,&data,0);
-        }
-      }
-      m_rxFSM=rxSt::Idle;
-      break; 
-    }
-  }
-}
-
-// filtes and parses raw-data using the beo_decode_fsm() to decode pulseCode 
+// filters and parses raw-data and decode to beo4Codes 
 void IrBeo4::parse_raw_data(rmt_symbol_word_t *sym, size_t n_sym) {
   ESP_LOGI(IR_BEO4,"n_sym=%d ",  n_sym);
-  if(n_sym > 10) {  // suppress short dummy codes (TSO7000 hiccups )
-    ESP_LOGI(IR_BEO4,"\nstart-------------------");
-    m_rxFSM=rxSt::Idle;
-    for(size_t ic=0; ic<n_sym; ic++) {
+  if(n_sym > 15) {           // suppress short dummy codes (TSO7000 hiccups)
+    int16_t stop_pos=-1;     // position of stop_symbol
+    int16_t jc=0, ic=0;      // loop counters
+    uint8_t pulseCodes[128]={0};  // pulse codes of raw-data
+    uint8_t beoData[20]={0};      // suitable inputdata for fsm
+
+    // filter TSOP7000 noise pulses and generate pulseCodes
+    for(ic=0; ic<n_sym; ic++) {
       uint16_t pulseWidth = sym[ic].duration0 + sym[ic].duration1;
-      if(pulseWidth>1500) {                              // suppress invalid pulses
-        uint16_t pulseCode = beo_pulse_code(pulseWidth); // round to pulse code [1..5]
-        beo_decode_fsm(pulseCode, n_sym);                // call beo4 decoder 
-        ESP_LOGI(IR_BEO4,"\n%5d %5d %5d %5d  ",sym[ic].duration0,sym[ic].duration1,pulseWidth,pulseCode);
+      if(pulseWidth > 1500){ // filter short TSOP7000 noise pulses
+        pulseCodes[jc++]=(uint8_t) ((pulseWidth+1560)/3125) ;
       }
     }
-    ESP_LOGI(IR_BEO4,"\nend---------------------\n");
-  }
-}
+    // find stop symbol
+    for(ic=0; ic<jc; ic++) { // find stop symbol
+      if(pcStop==pulseCodes[ic]) {
+        stop_pos=ic;         // mark stop symbol position
+        break;
+      }
+    }
+    // check if decoding is possible
+    if(stop_pos > 15) {      
+      uint32_t beoCode=0;    // decoded beoCode
+      uint32_t preBit=0;     // previous bit 
+      uint32_t data = 0;     // holds n_sym and beoCode
 
+      beoData[0] = pcZero;   // preset BeoLink bit, in case the frame is truncated
+      
+      // if a code is waiting, set the event for quarantine_task to skip the waiting code
+      if(1==m_beoWait) {
+        m_beoWait=0;
+        xEventGroupSetBits(g_eg_handle,evRptCode); 
+      }
+      // beoData is filled from behind starting at stop_symbol postion
+      for(jc=stop_pos;jc>=0;jc--){
+        beoData[jc]=pulseCodes[jc]; 
+      }
+      // decode beoData from left to right
+      for(ic=0;ic<17;ic++) {
+        uint32_t curBit=0; 
+        switch(beoData[ic]) {
+          case pcZero: { curBit=preBit=0; break; }
+          case pcSame: { curBit=preBit;   break; }
+          case pcOne:  { curBit=preBit=1; break; }
+          default:     { return; } // invalid data, abort decoding
+        }
+        beoCode = (beoCode << 1) + curBit; 
+      }
+      // store number of symbols and beoCode
+      data = ((uint32_t)n_sym << 16) + (beoCode & 0xffff); 
+      
+      // check if repeatable codes and if they should be send to quarantine queue
+      if( 0==m_lc_mode && isRepeatable(beoCode) ) {
+        m_beoWait=1; // code has to wait in quarantine
+        xQueueSend(m_beo4_quarantine_queue,&data,0);
+      } else {
+        m_beoWait=0; // send out directly
+        xQueueSend(m_beo4_rx_queue,&data,0);
+      }
+    } // if(start_pos > 15)
+  } // if(n_sym > 10)
+}

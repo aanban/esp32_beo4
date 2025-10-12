@@ -97,7 +97,7 @@ constexpr uint8_t BEO_CMD_STAND        = 0xf7;
 
 
 // ----------------------------------------------------------------------------
-// external c-helper fucntions
+// external c-helper functions
 // ----------------------------------------------------------------------------
 
 extern const char* beo_src_tbl(uint32_t beo_code);
@@ -108,7 +108,7 @@ extern const uint8_t isRepeatable(uint32_t beo_code);
 // external call back functions
 // ----------------------------------------------------------------------------
 
-// is called when trasnsmit starts to turn LED on and when trasmit ends 
+// is called when transmit starts to turn LED on and when transmit ends 
 // to turn LED off
 extern __attribute__((weak)) void beo_led_cb(uint8_t mode);
 
@@ -117,12 +117,9 @@ extern __attribute__((weak)) void beo_led_cb(uint8_t mode);
 // const expressions and enums
 // ----------------------------------------------------------------------------
 
-// Beo4 receicver state machine
-enum class rxSt { Idle, Data, Stop };
-
 // timeout values, 20ms or infinite
 constexpr TickType_t WAIT_infi  = portMAX_DELAY;  
-constexpr TickType_t WAIT_250ms = (250/portTICK_PERIOD_MS);
+constexpr TickType_t WAIT_300ms = (300/portTICK_PERIOD_MS);
 
 // ----------------------------------------------------------------------------
 // the class
@@ -131,16 +128,13 @@ class IrBeo4 {
   private:
     int8_t     m_rx_pin  = -1;               ///< IR receive pin
     int8_t     m_tx_pin  = -1;               ///< IR transmit pin
-    int64_t    m_tsFrm   = 0;                ///< timestamp frame start
-    int64_t    m_tsNew   = 0;                ///< timestamp new edge arrived
-    int64_t    m_tsPre   = 0;                ///< timestamp previous edge
+    int8_t     m_lc_mode = 0;                ///< long-code-mode 0=skip waiting code 1=keep waiting code
     uint8_t    m_bc      = 0;                ///< data bit counter 0..16
     uint8_t    m_preBit  = 0;                ///< previous bit code
     uint8_t    m_pCode   = 0;                ///< pulse code
     uint32_t   m_pWidth  = 0;                ///< pulse width 
     uint32_t   m_beoCode = 0;                ///< decoded Beo4 code
     uint8_t    m_beoWait = 0;                ///< repeatable code is waiting 
-    rxSt       m_rxFSM   = rxSt::Idle;       ///< initial state receive statemachine
     TickType_t m_wait    = WAIT_infi;        ///< initial timeout reading isr-queue
 
     QueueHandle_t m_beo4_rx_queue;           ///< receive queue beoCodes
@@ -151,7 +145,7 @@ class IrBeo4 {
 
     // rmt transmit variables
     rmt_tx_channel_config_t  m_tx_cfg;       ///< rmt transmit channel configuration 
-    rmt_carrier_config_t     m_tx_carr_cfg;  ///< rmt trasnmit carrier configuration
+    rmt_carrier_config_t     m_tx_carr_cfg;  ///< rmt transmit carrier configuration
     rmt_transmit_config_t    m_transmit_cfg; ///< rmt transmit configuration
 
     rmt_channel_handle_t     m_tx_chan=NULL; ///< rmt transmit channel 
@@ -160,7 +154,7 @@ class IrBeo4 {
 
     // rmt receive variables
     rmt_rx_channel_config_t m_rx_cfg;        ///< rmt receive channel configuration
-    rmt_receive_config_t m_rx_receive_cfg;   ///< rmt recveive configuration
+    rmt_receive_config_t m_rx_receive_cfg;   ///< rmt receive configuration
     rmt_channel_handle_t m_rx_chan=NULL;     ///< rmt receive channel
     rmt_rx_event_callbacks_t m_rx_event_cbs; ///< rmt event callback config
 
@@ -179,30 +173,15 @@ class IrBeo4 {
     // - calls rmt_enable() to start m_rx_chan
     int rmt_rx_setup(void);
     
-    // beo4 decoder state machine
-    // - waits in idle state until start-pulss-code is detected
-    // - collects 17 data bits
-    // - checks that stop-pulse-code follows
-    // - repeatable Codes are send to m_beo4_quarantine_queue
-    // - single Codes are send directly to output m_beo4_rx_queue 
-    // @param pulseCode pulse codes [1..5]
-    // @param n_sym number of received RMT symbols 
-    void beo_decode_fsm(uint32_t pulseCode, size_t n_sym);
-
-    // parse raw date from RMT receiver
-    // - suppress short (n_sym <10) dummy codes from TSOP7000 hiccups
-    // - compute pulsewidth and suppress invalid pulses (pulses < 1500) 
-    // - decodes with beo_decode_fsm
+    // filter and parse raw date from RMT receiver
+    // - suppress short dummy codes (n_sym <15) from TSOP7000 hiccups
+    // - suppress invalid pulses (pulses < 1500) 
+    // - find stop-symbol
+    // - decodes 17 data-symbols
+    // - send beoCode to queue
     // @param sym pointer to raw data symbols
-    // @param n_sym number of rad data symbols
+    // @param n_sym number of raw data symbols
     void parse_raw_data(rmt_symbol_word_t *sym, size_t n_sym);
-
-    // computes pulseCode from pulseWidth
-    // @param pulseWidth duration of complete pulse (carrier+low_pulse)
-    inline uint16_t beo_pulse_code(uint16_t pulseWidth) {
-      return (uint16_t) (pulseWidth+1560)/3125;
-    }
-    
 
     // if led callback function is set, turn ON/OFF the LED
     // @param mode HIGH=turn LED on  LOW=turn LED off
@@ -221,7 +200,7 @@ class IrBeo4 {
     friend void beo4_rx_task(void *param); 
     TaskHandle_t m_beo4_rx_task; ///< task handle
     
-    // Beo4 Quarantine Task, handels repeatable BeoCodes. 
+    // Beo4 Quarantine Task, handles repeatable BeoCodes. 
     // Repeatable beoCodes arrives at m_beo4_quarantine_queue. They have to
     // wait until either a timeout has expired or a successor BeoCode arrived.
     // In case of a successor beoCode the event-Bis are set and the beoCode 
@@ -245,7 +224,8 @@ class IrBeo4 {
     // constructor
     // @param rx_pin input IR receiver pin
     // @param tx_pin output IR transmit pin (default=-1, not used)
-    IrBeo4(int8_t rx_pin, int8_t tx_pin=-1);
+    // @param lc_mode long-code mode, 0=skip waiting code 1=keep waiting code
+    IrBeo4(int8_t rx_pin, int8_t tx_pin=-1, int8_t lc_mode=0);
     
     // destructor
     ~IrBeo4();
