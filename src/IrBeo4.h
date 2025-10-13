@@ -176,8 +176,7 @@ class IrBeo4 {
     // filter and parse raw date from RMT receiver
     // - suppress short dummy codes (n_sym <15) from TSOP7000 hiccups
     // - suppress invalid pulses (pulses < 1500) 
-    // - find stop-symbol
-    // - decodes 17 data-symbols
+    // - decodes 16 data-symbols
     // - send beoCode to queue
     // @param sym pointer to raw data symbols
     // @param n_sym number of raw data symbols

@@ -365,7 +365,7 @@ int IrBeo4::rmt_rx_setup(void) {
   ESP_ERROR_CHECK(rmt_rx_register_event_callbacks(m_rx_chan, &m_rx_event_cbs, m_beo4_rmt_rx_queue));
 
   m_rx_receive_cfg.signal_range_min_ns =     2000;   //    10µs <   200 µs
-  m_rx_receive_cfg.signal_range_max_ns = 14000000;   // 14000µs, this time is shorter than the pulse width of the start symbol, 
+  m_rx_receive_cfg.signal_range_max_ns = 10000000;   // 10000µs, this time is shorter than the pulse width of the stop symbol, 
                                                      // thus representing the separator for the long repeat frames. 
   m_rx_receive_cfg.flags.en_partial_rx = false; 
 
@@ -397,48 +397,34 @@ int IrBeo4::Begin(QueueHandle_t beo4_rx_queue, QueueHandle_t beo4_tx_queue) {
   return ESP_OK;
 }
 
+
 // filters and parses raw-data and decode to beo4Codes 
 void IrBeo4::parse_raw_data(rmt_symbol_word_t *sym, size_t n_sym) {
   ESP_LOGI(IR_BEO4,"n_sym=%d ",  n_sym);
   if(n_sym > 15) {           // suppress short dummy codes (TSO7000 hiccups)
-    int16_t stop_pos=-1;     // position of stop_symbol
-    int16_t jc=0, ic=0;      // loop counters
-    uint8_t pulseCodes[128]={0};  // pulse codes of raw-data
-    uint8_t beoData[20]={0};      // suitable inputdata for fsm
+    uint8_t beoData[16];     // extracted payload data
+    int16_t sc=0;            // data symbol counter
 
     // filter TSOP7000 noise pulses and generate pulseCodes
-    for(ic=0; ic<n_sym; ic++) {
+    for(int16_t ic=n_sym-1; (ic>=0) && (sc<16); ic--) {
       uint16_t pulseWidth = sym[ic].duration0 + sym[ic].duration1;
       if(pulseWidth > 1500){ // filter short TSOP7000 noise pulses
-        pulseCodes[jc++]=(uint8_t) ((pulseWidth+1560)/3125) ;
+        beoData[15-sc]=(uint8_t) ((pulseWidth+1560)/3125) ;
+        sc++;
       }
     }
-    // find stop symbol
-    for(ic=0; ic<jc; ic++) { // find stop symbol
-      if(pcStop==pulseCodes[ic]) {
-        stop_pos=ic;         // mark stop symbol position
-        break;
-      }
-    }
-    // check if decoding is possible
-    if(stop_pos > 15) {      
+    // length check, 16 symbols expected
+    if(16==sc) {      
       uint32_t beoCode=0;    // decoded beoCode
       uint32_t preBit=0;     // previous bit 
-      uint32_t data = 0;     // holds n_sym and beoCode
-
-      beoData[0] = pcZero;   // preset BeoLink bit, in case the frame is truncated
-      
+      uint32_t data = 0;     // data word storing n_sym and beoCode
       // if a code is waiting, set the event for quarantine_task to skip the waiting code
       if(1==m_beoWait) {
         m_beoWait=0;
         xEventGroupSetBits(g_eg_handle,evRptCode); 
       }
-      // beoData is filled from behind starting at stop_symbol postion
-      for(jc=stop_pos;jc>=0;jc--){
-        beoData[jc]=pulseCodes[jc]; 
-      }
-      // decode beoData from left to right
-      for(ic=0;ic<17;ic++) {
+      // decode beoData payload
+      for(int16_t ic=0;ic<16;ic++) {
         uint32_t curBit=0; 
         switch(beoData[ic]) {
           case pcZero: { curBit=preBit=0; break; }
@@ -450,7 +436,6 @@ void IrBeo4::parse_raw_data(rmt_symbol_word_t *sym, size_t n_sym) {
       }
       // store number of symbols and beoCode
       data = ((uint32_t)n_sym << 16) + (beoCode & 0xffff); 
-      
       // check if repeatable codes and if they should be send to quarantine queue
       if( 0==m_lc_mode && isRepeatable(beoCode) ) {
         m_beoWait=1; // code has to wait in quarantine
@@ -459,6 +444,6 @@ void IrBeo4::parse_raw_data(rmt_symbol_word_t *sym, size_t n_sym) {
         m_beoWait=0; // send out directly
         xQueueSend(m_beo4_rx_queue,&data,0);
       }
-    } // if(start_pos > 15)
-  } // if(n_sym > 10)
+    } // if(16==sc)
+  } // if(n_sym > 15)
 }
