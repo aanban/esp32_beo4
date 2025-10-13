@@ -6,7 +6,7 @@
 #include "driver/rmt_rx.h"
 #include "esp_log.h"
 
-constexpr const char* IrBeo4Version = "1.4.0";
+constexpr const char* IrBeo4Version = "1.5.0";
 constexpr const char* IR_BEO4 = "IrBeo4";
 
 // ----------------------------------------------------------------------------
