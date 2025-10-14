@@ -417,7 +417,6 @@ void IrBeo4::parse_raw_data(rmt_symbol_word_t *sym, size_t n_sym) {
     if(17==sc) {      
       uint32_t beoCode=0;    // decoded beoCode
       uint32_t preBit=0;     // previous bit 
-      uint32_t data = 0;     // data word storing n_sym and beoCode
       // if a code is waiting, set the event for quarantine_task to skip the waiting code
       if(1==m_beoWait) {
         m_beoWait=0;
@@ -434,18 +433,13 @@ void IrBeo4::parse_raw_data(rmt_symbol_word_t *sym, size_t n_sym) {
         }
         beoCode = (beoCode << 1) + curBit; 
       }
-      // store number of symbols and beoLink+beoCode
-      // [31...18] [16...0]
-      // 15-Bit    17-Bit
-      // n_sym     beoLink,beoCode
-      data = ((uint32_t)n_sym << 17) + (beoCode & 0x1ffff); 
       // check if repeatable codes and if they should be send to quarantine queue
       if( 0==m_lc_mode && isRepeatable(beoCode) ) {
         m_beoWait=1; // code has to wait in quarantine
-        xQueueSend(m_beo4_quarantine_queue,&data,0);
+        xQueueSend(m_beo4_quarantine_queue,&beoCode,0);
       } else {
         m_beoWait=0; // send out directly
-        xQueueSend(m_beo4_rx_queue,&data,0);
+        xQueueSend(m_beo4_rx_queue,&beoCode,0);
       }
     } // if(16==sc)
   } // if(n_sym > 15)
