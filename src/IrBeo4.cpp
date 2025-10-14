@@ -402,19 +402,19 @@ int IrBeo4::Begin(QueueHandle_t beo4_rx_queue, QueueHandle_t beo4_tx_queue) {
 void IrBeo4::parse_raw_data(rmt_symbol_word_t *sym, size_t n_sym) {
   ESP_LOGI(IR_BEO4,"n_sym=%d ",  n_sym);
   if(n_sym > 15) {           // suppress short dummy codes (TSO7000 hiccups)
-    uint8_t beoData[16];     // extracted payload data
+    uint8_t beoData[17];     // extracted payload data
     int16_t sc=0;            // data symbol counter
 
     // filter TSOP7000 noise pulses and generate pulseCodes
-    for(int16_t ic=n_sym-1; (ic>=0) && (sc<16); ic--) {
+    for(int16_t ic=n_sym-1; (ic>=0) && (sc<17); ic--) {
       uint16_t pulseWidth = sym[ic].duration0 + sym[ic].duration1;
       if(pulseWidth > 1500){ // filter short TSOP7000 noise pulses
-        beoData[15-sc]=(uint8_t) ((pulseWidth+1560)/3125) ;
+        beoData[16-sc]=(uint8_t) ((pulseWidth+1560)/3125) ;
         sc++;
       }
     }
     // length check, 16 symbols expected
-    if(16==sc) {      
+    if(17==sc) {      
       uint32_t beoCode=0;    // decoded beoCode
       uint32_t preBit=0;     // previous bit 
       uint32_t data = 0;     // data word storing n_sym and beoCode
@@ -424,7 +424,7 @@ void IrBeo4::parse_raw_data(rmt_symbol_word_t *sym, size_t n_sym) {
         xEventGroupSetBits(g_eg_handle,evRptCode); 
       }
       // decode beoData payload
-      for(int16_t ic=0;ic<16;ic++) {
+      for(int16_t ic=0;ic<17;ic++) {
         uint32_t curBit=0; 
         switch(beoData[ic]) {
           case pcZero: { curBit=preBit=0; break; }
@@ -434,8 +434,11 @@ void IrBeo4::parse_raw_data(rmt_symbol_word_t *sym, size_t n_sym) {
         }
         beoCode = (beoCode << 1) + curBit; 
       }
-      // store number of symbols and beoCode
-      data = ((uint32_t)n_sym << 16) + (beoCode & 0xffff); 
+      // store number of symbols and beoLink+beoCode
+      // [31...18] [16...0]
+      // 15-Bit    17-Bit
+      // n_sym     beoLink,beoCode
+      data = ((uint32_t)n_sym << 17) + (beoCode & 0x1ffff); 
       // check if repeatable codes and if they should be send to quarantine queue
       if( 0==m_lc_mode && isRepeatable(beoCode) ) {
         m_beoWait=1; // code has to wait in quarantine
