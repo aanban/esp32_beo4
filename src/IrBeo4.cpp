@@ -423,7 +423,7 @@ void IrBeo4::parse_raw_data(rmt_symbol_word_t *sym, size_t n_sym) {
         xEventGroupSetBits(g_eg_handle,evRptCode); 
       }
       // decode beoData payload, starting with beoLink Bit, then loop thru 16 Bit
-      preBit = beoCode = ((pcOne==beoData[0]) ? 1:0); 
+      preBit = beoCode = ((pcSame==beoData[0]) ? 1:0); 
       for(int16_t ic=1;ic<17;ic++) {
         uint32_t curBit=0; 
         switch(beoData[ic]) {
